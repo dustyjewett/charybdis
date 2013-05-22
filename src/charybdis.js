@@ -9,7 +9,7 @@ var exec = require('child_process').exec;
 var cli = require('cli').enable('status'); //Enable 2 plugins
 
 cli.parse({
-    batch: ['b', 'Run a specific batch', 'string', 'e48c92ba73a8ab00'],
+    batch: ['b', 'Run a specific batch', 'string', '9c2cedbe26409aa9'],
     serve: [false, 'Serve static files from PATH', 'path', './public']
 });
 
@@ -187,6 +187,7 @@ cli.main(function (args, options) {
                         })
                         .then(function (diff){
                             return saveDiff({
+                                report:next.id,
                                 reportResultA:next.masterResult.id,
                                 reportResultAName:next.masterResult.timestamp,
                                 reportResultB:currentResult.id,
