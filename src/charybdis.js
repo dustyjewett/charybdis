@@ -1,45 +1,77 @@
 var Q = require('q');
 var fsQ = require("q-io/fs");
+var http = require("q-io/http");
 var webPageToImage = require("./webPageToImage");
 var temp = require("temp");
-var request = require("request");
 var exec = require('child_process').exec;
 
 
-var cli = require('cli').enable('status'); //Enable 2 plugins
+var cli = require('cli').enable('status'); //Enable status plugin
 
 cli.parse({
     batch: ['b', 'Run a specific batch', 'string', '9c2cedbe26409aa9'],
+    host : ['h', 'Specify Scylla Hostname', 'string', 'localhost'],
+    port : ['p', 'Specify Scylla Port', 'string', '5001'],
     serve: [false, 'Serve static files from PATH', 'path', './public']
 });
 
-var getBatch = function (batchId) {
-    var deferred = Q.defer();
-    console.log("Getting Batch: ", batchId)
-    request({uri: 'http://localhost:5000/batches/' + batchId}, function (error, response, body) {
-        if (!error && response.statusCode == 200) {
-            console.log("Got Batch: ", body);
-            deferred.resolve(JSON.parse(body));
-        } else {
-            console.log(error)
-            deferred.reject(error)
-        }
-    });
-    return deferred.promise;
+var host = "";
+var port = "";
+
+var newRequest = function (method, path, body) {
+    return {
+        host   : host,
+        port   : port,
+        method : method,
+        path   : path,
+        headers: {"Content-type": "application/json"},
+        body   : (body) ? [JSON.stringify(body)] : undefined
+    };
+};
+
+var getRequest = function (path) {
+    return newRequest("GET", path);
+}
+var postRequest = function (path, body) {
+    return newRequest("POST", path, body);
 }
 
-var readPng = function(filename){
-    return fsQ.read(filename, "b")
-        .then(function(imageData) {
-            return "data:image/png;base64," + imageData.toString("base64")
+var getJsonObject = function (requestObject) {
+    console.log("Sending Request: ", requestObject);
+    return http.request(requestObject)
+        .then(function (response) {
+            if (response && response.status == 200) {
+                console.log("Response Received");
+                return response.body.read()
+                    .then(function (body) {
+                        console.log("Got JSON: ", body.toString());
+                        return JSON.parse(body.toString());
+                    });
+            } else {
+                console.error(response);
+                throw new Error(response);
+            }
         });
-}
 
-var writePng = function(filename, imageString){
+};
+
+var getBatch = function (batchId) {
+    var batchRequest = getRequest("/batches/" + batchId);
+    return getJsonObject(batchRequest);
+};
+
+var readPng = function (filename) {
+    return fsQ.read(filename, "b")
+        .then(function (imageData) {
+            return "data:image/png;base64," + imageData.toString("base64");
+        });
+};
+
+var writePng = function (filename, imageString) {
     var d = Q.defer();
-    var fileContents = imageString.replace(/^data:image\/png;base64,/,"");
-    require("fs").writeFile(filename, fileContents, "base64", function(err) {
-        if(err){
+    var fileContents = imageString.replace(/^data:image\/png;base64,/, "");
+    require("fs").writeFile(filename, fileContents, "base64", function (err) {
+        if (err) {
             console.log(err); // writes out file without error, but it's not a valid image
             d.reject(err);
         } else {
@@ -47,13 +79,12 @@ var writePng = function(filename, imageString){
         }
     });
     return d.promise;
-}
+};
 
 
 var saveNewReportResult = function saveNewReportResult(report, imageFile) {
-    var deferred = Q.defer();
     console.log("Saving result for file: ", imageFile);
-    readPng(imageFile)
+    return readPng(imageFile)
         .then(function (imageString) {
             var result = {
                 report   : report.id,
@@ -61,31 +92,24 @@ var saveNewReportResult = function saveNewReportResult(report, imageFile) {
                 "result" : imageString
             };
             console.log("Saving Report Result: ", result);
-            request({
-                uri   : "http://localhost:5000/report-results",
-                method: "POST",
-                json  : result
+            var reportResultPost = postRequest("/report-results/", result);
 
-            }, function (error, response, body) {
-                if (!error && response.statusCode == 200) {
-                    console.log("Saved Report Result: ", body);
-                    deferred.resolve(body);
-                } else {
-                    console.log("Error Posting New Result", body);
-                    deferred.reject(error);
-                }
-            });
+            return getJsonObject(reportResultPost);
+
         }, function (error) {
             console.log("Unable to open file: ", error);
             deferred.reject(error);
         });
+};
 
-    console.log("Created Report Result");
-    return deferred.promise;
+var saveNewBatchResult = function saveNewBatchResult(batchResult) {
+
+    var batchResultPost = postRequest("/batch-results/", batchResult);
+    return getJsonObject(batchResultPost);
+
 }
 
 var diffTwoReportResults = function diffTwoReportResults(masterResult, newResult) {
-    var deferred = Q.defer();
     console.log("Diffing Results:", masterResult.timestamp, newResult.timestamp);
     var masterFile = temp.path({suffix: '.png'});
     var newFile = temp.path({suffix: '.png'});
@@ -95,23 +119,23 @@ var diffTwoReportResults = function diffTwoReportResults(masterResult, newResult
             writePng(masterFile, masterResult.result),
             writePng(newFile, newResult.result)
         ])
-        .then(function(){
+        .then(function () {
             var execDeferred = Q.defer();
             var cmd = ["compare",
                        "-metric mae",
                        '"' + masterFile + '"',
                        '"' + newFile + '"',
                        '"' + diffFile + '"'].join(" ");
-            exec(cmd, function(error, stdout, stderr){
-                if(error){
+            exec(cmd, function (error, stdout, stderr) {
+                if (error) {
                     console.log("Error: ", error);
                     execDeferred.reject(error);
                 } else {
                     readPng(diffFile)
-                        .then(function(imageString){
+                        .then(function (imageString) {
                             execDeferred.resolve({
-                                image:imageString,
-                                distortion:parseFloat(stderr)
+                                image     : imageString,
+                                distortion: parseFloat(stderr)
                             });
 
                         })
@@ -119,91 +143,95 @@ var diffTwoReportResults = function diffTwoReportResults(masterResult, newResult
             });
             return execDeferred.promise
         })
-        /*
-        .fin(function(){
-            return Q.all([fsQ.remove(masterFile), fsQ.remove(newFile), fsQ.remove(diffFile)]);
-        });
-        */
+    /*
+     .fin(function(){
+     return Q.all([fsQ.remove(masterFile), fsQ.remove(newFile), fsQ.remove(diffFile)]);
+     });
+     */
 
-
-    return deferred.promise;
 }
 
-var saveDiff = function saveDiff(diff){
-    var deferred = Q.defer();
+var saveDiff = function saveDiff(diff) {
 
-    request({
-        uri   : "http://localhost:5000/diffs",
-        method: "POST",
-        json  : diff
+    var diffPost = postRequest("/diffs/", diff);
+    return getJsonObject(diffPost);
 
-    }, function (error, response, body) {
-        if (!error && response.statusCode == 200) {
-            console.log("Saved Diff: ", body);
-            deferred.resolve(body);
-        } else {
-            console.log("Error Posting Diff", body);
-            deferred.reject(error);
-        }
-    });
-
-    return deferred.promise;
-}
+};
 
 cli.main(function (args, options) {
+    console.log(args, options);
+
     var commandLine = this;
+    host = options.host;
+    port = options.port;
+
     /**
      * Retrieve a list of urls we're to screenshot
      */
-    console.log(args, options);
     var getBatchPromise;
     if (options.batch && options.batch.length > 0) {
         getBatchPromise = getBatch(options.batch);
     }
 
 
+
     getBatchPromise.then(function (batch) {
-        console.log("Processing Batch", batch);
         var list = batch.reports;
+        var batchResult = {
+            batch        : batch.id,
+            pass         : 0,
+            fail         : 0,
+            exception    : 0,
+            start        : new Date().toISOString(),
+            end          : "",
+            reportResults: {}
+        };
+        var promises = [];
         while (list.length) {
             var nextId = list.shift();
-            request({uri: "http://localhost:5000/reports/" + nextId}, function (error, response, body) {
-                if (!error && response.statusCode == 200) {
-                    var next = JSON.parse(body);
-                    var tmpName = temp.path({suffix: '.png'});
-                    var currentResult;
+            var nextReportRequest = getRequest("/reports/" + nextId);
+            promises.push(
+                getJsonObject(nextReportRequest)
+                    .then(function (next) {
+                        var tmpName = temp.path({suffix: '.png'});
+                        var currentResult;
 
-                    webPageToImage(next.url, tmpName)
-                        .then(function () {
-                            return saveNewReportResult(next, tmpName)
-                        })
-                        .then(function (newResult) {
-                            currentResult = newResult;
-                            if(next.masterResult){
-                                return diffTwoReportResults(next.masterResult, currentResult);
-                            }
-                            console.log("No Master Result defined for: ", next.name);
-                            return true;
-                        })
-                        .then(function (diff){
-                            return saveDiff({
-                                report:next.id,
-                                reportResultA:next.masterResult.id,
-                                reportResultAName:next.masterResult.timestamp,
-                                reportResultB:currentResult.id,
-                                reportResultBName:currentResult.timestamp,
-                                distortion:diff.distortion,
-                                image:diff.image
+                        return webPageToImage(next.url, tmpName)
+                            .then(function () {
+                                return saveNewReportResult(next, tmpName);
                             })
-                        })
-                        .then(function(){
-                            return fsQ.remove(tmpName);
-                        })
-                } else {
-                    console.log(response);
-                }
-            })
+                            .then(function (newResult) {
+                                currentResult = newResult;
+                                if (next.masterResult) {
+                                    return diffTwoReportResults(next.masterResult, currentResult)
+                                        .then(function (diff) {
+                                            batchResult.reportResults[currentResult.id] = diff.distortion;
+                                            batchResult[(diff.distortion != 0 ? "pass" : "fail")]++;
+                                            return saveDiff({
+                                                report           : next.id,
+                                                reportResultA    : next.masterResult.id,
+                                                reportResultAName: next.masterResult.timestamp,
+                                                reportResultB    : currentResult.id,
+                                                reportResultBName: currentResult.timestamp,
+                                                distortion       : diff.distortion,
+                                                image            : diff.image
+                                            })
+                                        })
+                                }
+                                console.log("No Master Result defined for: ", next.name);
+                            })
+                            .then(function () {
+                                return fsQ.remove(tmpName);
+                            });
+                    })
+            );
+
         }
+        Q.all(promises)
+            .then(function () {
+                batchResult.end = new Date().toISOString();
+                saveNewBatchResult(batchResult);
+            })
     }, function (error) {
         commandLine.error(error);
     });
