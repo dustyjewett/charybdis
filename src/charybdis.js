@@ -9,9 +9,10 @@ var exec = require('child_process').exec;
 var cli = require('cli').enable('status'); //Enable status plugin
 
 cli.parse({
-    batch: ['b', 'Run a specific batch', 'string', '9c2cedbe26409aa9'],
+    //batch: ['b', 'Run a specific batch', 'string', '9c2cedbe26409aa9'],
+    batch: ['b', 'Run a specific batch', 'string', 'e48c92ba73a8ab00'],
     host : ['h', 'Specify Scylla Hostname', 'string', 'localhost'],
-    port : ['p', 'Specify Scylla Port', 'string', '5001'],
+    port : ['p', 'Specify Scylla Port', 'string', '5000'],
     serve: [false, 'Serve static files from PATH', 'path', './public']
 });
 
@@ -37,7 +38,7 @@ var postRequest = function (path, body) {
 }
 
 var getJsonObject = function (requestObject) {
-    console.log("Sending Request: ", requestObject);
+    //console.log("Sending Request: ", requestObject);
     return http.request(requestObject)
         .then(function (response) {
             if (response && response.status == 200) {
@@ -48,7 +49,7 @@ var getJsonObject = function (requestObject) {
                         return JSON.parse(body.toString());
                     });
             } else {
-                console.error(response);
+                cli.fatal("HTTP Error (" + requestObject.path + "): ", response);
                 throw new Error(response);
             }
         });
@@ -87,18 +88,18 @@ var saveNewReportResult = function saveNewReportResult(report, imageFile) {
     return readPng(imageFile)
         .then(function (imageString) {
             var result = {
-                report   : report.id,
+                reportId   : report.id,
                 timestamp: new Date().toISOString(),
                 "result" : imageString
             };
-            console.log("Saving Report Result: ", result);
+            cli.ok("Saving Report Result: ", result);
             var reportResultPost = postRequest("/report-results/", result);
 
             return getJsonObject(reportResultPost);
 
         }, function (error) {
             console.log("Unable to open file: ", error);
-            deferred.reject(error);
+            throw new Error(error);
         });
 };
 
@@ -142,6 +143,8 @@ var diffTwoReportResults = function diffTwoReportResults(masterResult, newResult
                 }
             });
             return execDeferred.promise
+        },function(error){
+            cli.fatal("Oh Shit, Error! ", error);
         })
     /*
      .fin(function(){
@@ -176,15 +179,15 @@ cli.main(function (args, options) {
 
 
     getBatchPromise.then(function (batch) {
-        var list = batch.reports;
+        var list = batch.reportIds;
         var batchResult = {
-            batch        : batch.id,
+            batchId        : batch.id,
             pass         : 0,
             fail         : 0,
             exception    : 0,
             start        : new Date().toISOString(),
             end          : "",
-            reportResults: {}
+            reportResultSummaries: {}
         };
         var promises = [];
         while (list.length) {
@@ -202,22 +205,27 @@ cli.main(function (args, options) {
                             })
                             .then(function (newResult) {
                                 currentResult = newResult;
-                                if (next.masterResult) {
+                                if (next.masterResultId) {
                                     return diffTwoReportResults(next.masterResult, currentResult)
                                         .then(function (diff) {
-                                            batchResult.reportResults[currentResult.id] = diff.distortion;
-                                            batchResult[(diff.distortion != 0 ? "pass" : "fail")]++;
+                                            batchResult.reportResultSummaries[currentResult.id] = {
+                                                diff:diff.distortion,
+                                                name:next.name
+                                            };
+                                            batchResult[(diff.distortion == 0 ? "pass" : "fail")]++;
                                             return saveDiff({
-                                                report           : next.id,
-                                                reportResultA    : next.masterResult.id,
+                                                reportId           : next.id,
+                                                reportResultAId    : next.masterResult.id,
                                                 reportResultAName: next.masterResult.timestamp,
-                                                reportResultB    : currentResult.id,
+                                                reportResultBId    : currentResult.id,
                                                 reportResultBName: currentResult.timestamp,
                                                 distortion       : diff.distortion,
                                                 image            : diff.image
                                             })
                                         })
                                 }
+                                batchResult.reportResultSummaries[currentResult.id] = -1;
+                                batchResult.exception++;
                                 console.log("No Master Result defined for: ", next.name);
                             })
                             .then(function () {
