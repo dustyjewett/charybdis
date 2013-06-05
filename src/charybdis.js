@@ -186,8 +186,12 @@ module.exports = function(host, port){
          * Retrieve a list of urls we're to screenshot
          */
         var getBatchPromise;
-        if (batch && batch.length > 0) {
+        if (batch && typeof batch === "string" && batch.length > 0) {
             getBatchPromise = getBatch(batch);
+        } else {
+            var d = Q.defer();
+            d.reject(new Error("Batch ID is required"));
+            return d.promise;
         }
 
         return getBatchPromise.then(function (batch) {
