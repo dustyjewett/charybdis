@@ -22,7 +22,7 @@ module.exports = function(host, port){
     }
 
     var getJsonObject = function (requestObject) {
-        console.log("Sending Request: ", requestObject);
+        //console.log("Sending Request: ", requestObject);
         return http.request(requestObject)
             .then(function (response) {
                 if (response && response.status == 200) {

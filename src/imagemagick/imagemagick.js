@@ -99,7 +99,7 @@ module.exports = (function(){
                    '"' + outFile + '"'].join(" ");
         exec(cmd, function(error, stdout, stderr){
             if(error){
-                console.log(stderr);
+                //console.log(stderr);
                 execDeferred.reject(parseCompareVerboseMAEError(stderr.split("\n")));
             } else {
                 execDeferred.fulfill(parseCompareVerboseMAEOutput(stderr.split("\n")));

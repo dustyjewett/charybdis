@@ -3,7 +3,6 @@ module.exports = function (host, port) {
     var fsQ = require("q-io/fs");
     var webPageToImage = require("./webPageToImage");
     var temp = require("temp");
-    var exec = require('child_process').exec;
     var imagemagick = require('./imagemagick/imagemagick');
     var pngIO = require('./pngIO');
 
@@ -61,9 +60,82 @@ module.exports = function (host, port) {
                         };
 
                     })
+            })
+            .fin(function(passthrough){
+                return Q.allResolved([
+                        fsQ.remove(masterFile),
+                        fsQ.remove(newFile),
+                        fsQ.remove(diffFile)
+                ])
+                    .then(function(){return passthrough})
             });
     };
 
+    var processReport = function(reportId){
+        var currentResult;
+        return scylla.getReport(reportId)
+            .then(function (report) {
+                console.log("Retrieved: " + report._id);
+                var webPageRenderPath = temp.path({suffix: '.png'});
+
+                return webPageToImage(report.url, webPageRenderPath)
+                    .then(function () {
+                        return saveNewReportResult(report, webPageRenderPath);
+                    })
+                    .then(function (newResult) {
+                        currentResult = newResult;
+                        if (report.masterResult) {
+                            return diffTwoReportResults(report.masterResult, currentResult)
+                                .then(function (diff) {
+                                    return scylla.newDiff({
+                                        report           : report,
+                                        reportResultA    : report.masterResult,
+                                        reportResultAName: report.masterResult.timestamp,
+                                        reportResultB    : currentResult,
+                                        reportResultBName: currentResult.timestamp,
+                                        distortion       : diff.distortion,
+                                        image            : diff.image
+                                    })
+                                }, function (error) {
+                                    console.log("Report Diff Exception: ", error.messages);
+                                    return scylla.newDiff({
+                                        report           : report,
+                                        reportResultA    : report.masterResult,
+                                        reportResultAName: report.masterResult.timestamp,
+                                        reportResultB    : currentResult,
+                                        reportResultBName: currentResult.timestamp,
+                                        distortion       : -1,
+                                        error            : error,
+                                        image            : undefined
+                                    })
+                                });
+                        }
+                        console.log("No Master Result defined for: ", report.name);
+                        return scylla.newDiff({
+                            report           : report,
+                            reportResultA    : undefined,
+                            reportResultAName: undefined,
+                            reportResultB    : undefined,
+                            reportResultBName: undefined,
+                            distortion       : -1,
+                            error            : {messages:["No Master Result defined."]},
+                            image            : undefined
+                        })
+                    })
+                    .then(function(diff){
+                        return {
+                            report:report,
+                            result:currentResult,
+                            diff:diff
+                        }
+                    })
+                    .fin(function (passthrough) {
+                        return fsQ.remove(webPageRenderPath)
+                            .then(function(){ return passthrough});
+                    })
+
+            })
+    }
 
     var execute = function (batch) {
 
@@ -77,8 +149,7 @@ module.exports = function (host, port) {
             var d = Q.defer();
             d.reject(new Error("Batch ID is required"));
             return d.promise;
-        }
-        ;
+        };
 
         return scylla.getBatch(batch)
             .then(function (batch) {
@@ -99,69 +170,21 @@ module.exports = function (host, port) {
                     console.log("Processing Report: " + nextId);
 
                     promises.push(
-                        scylla.getReport(nextId)
-                            .then(function (next) {
-                                console.log("Retrieved: " + next._id);
-                                var tmpName = temp.path({suffix: '.png'});
-                                var currentResult;
-
-                                return webPageToImage(next.url, tmpName)
-                                    .then(function () {
-                                        return saveNewReportResult(next, tmpName);
-                                    })
-                                    .then(function (newResult) {
-                                        currentResult = newResult;
-                                        if (next.masterResult) {
-                                            return diffTwoReportResults(next.masterResult, currentResult)
-                                                .then(function (diff) {
-
-                                                    batchResult[(diff.distortion == 0 ? "pass" : "fail")]++;
-
-                                                    return scylla.newDiff({
-                                                        report           : next,
-                                                        reportResultA    : next.masterResult,
-                                                        reportResultAName: next.masterResult.timestamp,
-                                                        reportResultB    : currentResult,
-                                                        reportResultBName: currentResult.timestamp,
-                                                        distortion       : diff.distortion,
-                                                        image            : diff.image
-                                                    }).then(function (diff) {
-                                                            batchResult.reportResultSummaries[currentResult._id] = {
-                                                                diffId: diff._id,
-                                                                diff  : diff.distortion,
-                                                                name  : next.name
-                                                            };
-                                                        })
-                                                }, function (error) {
-                                                    console.log("Report Diff Exception: ", error.message);
-                                                    batchResult.exception++;
-                                                    return scylla.newDiff({
-                                                        report           : next,
-                                                        reportResultA    : next.masterResult,
-                                                        reportResultAName: next.masterResult.timestamp,
-                                                        reportResultB    : currentResult,
-                                                        reportResultBName: currentResult.timestamp,
-                                                        distortion       : -1,
-                                                        image            : undefined
-                                                    }).then(function (diff) {
-                                                            batchResult.reportResultSummaries[currentResult._id] = {
-                                                                diffId: diff._id,
-                                                                error : error,
-                                                                diff  : -1,
-                                                                name  : next.name
-
-                                                            }
-                                                        });
-
-                                                });
-                                        }
-                                        batchResult.reportResultSummaries[currentResult._id] = -1;
-                                        batchResult.exception++;
-                                        console.log("No Master Result defined for: ", next.name);
-                                    })
-                                    .then(function () {
-                                        return fsQ.remove(tmpName);
-                                    });
+                        processReport(nextId)
+                            .then(function (result) {
+                                console.log("Setting Result Summary");
+                                if(result.diff.distortion == 0)
+                                    batchResult.pass++
+                                else if(result.diff.distortion == -1)
+                                    batchResult.exception++;
+                                else
+                                    batchResult.fail++;
+                                batchResult.reportResultSummaries[result.result._id] = {
+                                    diffId: result.diff._id,
+                                    diff  : result.diff.distortion,
+                                    error : (result.diff.distortion == -1) ? result.diff.error : undefined,
+                                    name  : result.report.name
+                                };
                             })
                     );
 
@@ -169,6 +192,7 @@ module.exports = function (host, port) {
                 return Q.all(promises)
                     .then(function () {
                         batchResult.end = new Date().toISOString();
+                        console.log("Batch Processing finished at: " + batchResult.end);
                         return scylla.newBatchResult(batch._id, batchResult);
                     });
             }, function (error) {
