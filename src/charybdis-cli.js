@@ -11,11 +11,9 @@ var logger = new winston.Logger({
 logger.cli();
 
 cli.parse({
-    batch: ['b', 'Run a specific batch', 'string', '51ad103f82aa1a0231000001'],
-    //batch: ['b', 'Run a specific batch', 'string', 'e48c92ba73a8ab00'],
+    batch: ['b', 'Run a specific batch', 'string', '51b0f1c4dd7d4f891c000007'],
     host : ['h', 'Specify Scylla Hostname', 'string', 'localhost'],
-    port : ['p', 'Specify Scylla Port', 'string', '3000'],
-    serve: [false, 'Serve static files from PATH', 'path', './public']
+    port : ['p', 'Specify Scylla Port', 'string', '3000']
 });
 
 

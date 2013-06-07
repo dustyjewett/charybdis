@@ -20,12 +20,26 @@ module.exports = function (host, port) {
 
     var saveNewReportResult = function saveNewReportResult(report, imageFile) {
         //console.log("Saving result for file: ", imageFile);
+        var fullImage;
+        var thumbFile = temp.path({suffix: '.png'});
+        var thumb;
         return pngIO.readPng(imageFile)
-            .then(function (imageString) {
+            .then(function(imageString){
+                fullImage = imageString;
+                return imagemagick.makeThumbnail(imageFile, thumbFile, 120 )
+            })
+            .then(function(){
+                return pngIO.readPng(thumbFile);
+            })
+            .then(function(thumbString){
+                thumb = thumbString;
+            })
+            .then(function () {
                 var result = {
                     report   : report,
                     timestamp: new Date().toISOString(),
-                    "result" : imageString
+                    "result" : fullImage,
+                    thumb    : thumb
                 };
                 //console.log("Saving Report Result: ", result);
                 return scylla.newReportResult(report._id, result);

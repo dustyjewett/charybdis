@@ -40,7 +40,7 @@ module.exports = function(host, port){
 
     };
     var getReport = function(reportId) {
-        var reportRequest = getRequest("/reports/" + reportId);
+        var reportRequest = getRequest("/reports/" + reportId + "?includeFullImage=true");
         return getJsonObject(reportRequest);
     };
 

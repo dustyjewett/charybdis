@@ -126,9 +126,35 @@ module.exports = (function(){
         return execDeferred.promise;
     };
 
+    var makeThumbnail = function resize(fileA, outFile, pixels){
+        var execDeferred = Q.defer();
+        //convert fileD.png -resize 120x120^ -gravity North -extent 120x120 thumb.png
+        var cmd = ["convert",
+                   '"' + fileA + '"',
+                   "-resize",
+                   "" + pixels + "x" + pixels + "^", //The ^ forces the output to fill the image
+                   "-gravity",
+                   "North",
+                   "-extent",
+                   "" + pixels + "x" + pixels,
+                   "-verbose",
+                   '"' + outFile + '"'
+        ].join(" ");
+        exec(cmd, function(error, stdout, stderr){
+            if(error){
+                execDeferred.reject(error);
+            } else {
+                var info = stderr.split('\n');
+                execDeferred.fulfill(parseIdentifySingleLineOutput(info[0]));
+            }
+        });
+        return execDeferred.promise;
+    }
+
 
     return {
         compare:compare,
-        identify:identify
+        identify:identify,
+        makeThumbnail:makeThumbnail
     };
 })();
