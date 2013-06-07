@@ -151,21 +151,21 @@ module.exports = function (host, port) {
             })
     }
 
-    var execute = function (batch) {
+    var execute = function (batchId) {
 
-        console.log("Executing with Batch: " + batch);
+        console.log("Executing with Batch: " + batchId);
 
 
         /**
          * Retrieve a list of urls we're to screenshot
          */
-        if (!batch || typeof batch !== "string" && batch.length == 0) {
+        if (!batchId || typeof batchId !== "string" && batchId.length == 0) {
             var d = Q.defer();
             d.reject(new Error("Batch ID is required"));
             return d.promise;
         };
 
-        return scylla.getBatch(batch)
+        return scylla.getBatch(batchId)
             .then(function (batch) {
                 var list = batch.reports;
                 console.log("Processing Reports: ", list);
@@ -207,7 +207,15 @@ module.exports = function (host, port) {
                     .then(function () {
                         batchResult.end = new Date().toISOString();
                         console.log("Batch Processing finished at: " + batchResult.end);
-                        return scylla.newBatchResult(batch._id, batchResult);
+                        return scylla.newBatchResult(batch._id, batchResult)
+                            .then(function(batchResult){
+                                /** ATTENTION **/
+                                /* This is the final return for Charybdis */
+                                return {
+                                    batch:batch,
+                                    batchResult:batchResult
+                                }
+                            });
                     });
             }, function (error) {
                 console.log("Error: ", error);
