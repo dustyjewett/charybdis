@@ -1,21 +1,12 @@
-module.exports = function (host, port) {
+module.exports = function () {
     var Q = require('q');
     var fsQ = require("q-io/fs");
-    var webPageToImage = require("./webPageToImage");
+    var webPageToImage = require("./phantomjs/webPageToImage");
     var temp = require("temp");
     var imagemagick = require('./imagemagick/imagemagick');
     var pngIO = require('./pngIO');
 
-    if (!host) {
-        console.fatal("Host is required");
-        throw "Host is required";
-    }
-    if (!port) {
-        console.fatal("Port is required");
-        throw "Port is required";
-    }
-    var scylla = require('./services/scylla-json')(host, port)
-    console.log("Charybdis setup against server: http://" + host + ":" + port);
+    var scylla;
 
 
     var saveNewReportResult = function saveNewReportResult(report, imageFile) {
@@ -24,14 +15,14 @@ module.exports = function (host, port) {
         var thumbFile = temp.path({suffix: '.png'});
         var thumb;
         return pngIO.readPng(imageFile)
-            .then(function(imageString){
+            .then(function (imageString) {
                 fullImage = imageString;
-                return imagemagick.makeThumbnail(imageFile, thumbFile, 120 )
+                return imagemagick.makeThumbnail(imageFile, thumbFile, 120)
             })
-            .then(function(){
+            .then(function () {
                 return pngIO.readPng(thumbFile);
             })
-            .then(function(thumbString){
+            .then(function (thumbString) {
                 thumb = thumbString;
             })
             .then(function () {
@@ -51,15 +42,23 @@ module.exports = function (host, port) {
     };
 
 
-    var diffTwoReportResults = function diffTwoReportResults(masterResult, newResult) {
-        console.log("Diffing Results:", masterResult.timestamp, newResult.timestamp);
+    /**
+     * Compares two base64 images.
+     * @param imageA
+     * @param imageB
+     * @return {Promise} for
+     *      Success: {image:String (Base64), distortion:Number}
+     *      Failure: {message:}
+     */
+    var diffTwoBase64Images = function diffTwoBase64Images(imageA, imageB) {
+
         var masterFile = temp.path({suffix: '.png'});
         var newFile = temp.path({suffix: '.png'});
         var diffFile = temp.path({suffix: '.png'});
 
         return Q.all([
-                pngIO.writePng(masterFile, masterResult.result),
-                pngIO.writePng(newFile, newResult.result)
+                pngIO.writePng(masterFile, imageA),
+                pngIO.writePng(newFile, imageB)
             ])
             .then(function () {
                 return imagemagick.compare(masterFile, newFile, diffFile)
@@ -75,17 +74,19 @@ module.exports = function (host, port) {
 
                     })
             })
-            .fin(function(passthrough){
+            .fin(function (passthrough) {
                 return Q.allResolved([
                         fsQ.remove(masterFile),
                         fsQ.remove(newFile),
                         fsQ.remove(diffFile)
-                ])
-                    .then(function(){return passthrough})
+                    ])
+                    .then(function () {
+                        return passthrough
+                    })
             });
     };
 
-    var processReport = function(reportId){
+    var processReport = function (reportId) {
         var currentResult;
         return scylla.getReport(reportId)
             .then(function (report) {
@@ -99,7 +100,7 @@ module.exports = function (host, port) {
                     .then(function (newResult) {
                         currentResult = newResult;
                         if (report.masterResult) {
-                            return diffTwoReportResults(report.masterResult, currentResult)
+                            return diffTwoBase64Images(report.masterResult.result, currentResult.result)
                                 .then(function (diff) {
                                     return scylla.newDiff({
                                         report           : report,
@@ -132,29 +133,99 @@ module.exports = function (host, port) {
                             reportResultB    : undefined,
                             reportResultBName: undefined,
                             distortion       : -1,
-                            error            : {messages:["No Master Result defined."]},
+                            error            : {messages: ["No Master Result defined."]},
                             image            : undefined
                         })
                     })
-                    .then(function(diff){
+                    .then(function (diff) {
                         return {
-                            report:report,
-                            result:currentResult,
-                            diff:diff
+                            report: report,
+                            result: currentResult,
+                            diff  : diff
                         }
                     })
                     .fin(function (passthrough) {
                         return fsQ.remove(webPageRenderPath)
-                            .then(function(){ return passthrough});
+                            .then(function () {
+                                return passthrough
+                            });
                     })
 
             })
+    };
+    var diffTwoUrls = function(urlA, urlB) {
+        var fileA = temp.path({suffix: '.png'});
+        var fileB = temp.path({suffix: '.png'});
+        var diffFile = temp.path({suffix: '.png'});
+        return Q.all([
+            webPageToImage(urlA, fileA),
+            webPageToImage(urlB, fileB)
+        ]).then(function(results){
+                return imagemagick.compare(fileA, fileB, diffFile)
+                    .then(function(info){
+                        console.log(info);
+                        var distortion = parseFloat(info.comparison.properties["Channel distortion"].all.split(" ")[0])
+                        console.log("Distortion:" + distortion);
+                        return pngIO.readPng(diffFile)
+                            .then(function (imageString) {
+                                return {
+                                    image     : imageString,
+                                    distortion: distortion
+                                };
+
+                            })
+                    })
+            })
+
     }
 
-    var execute = function (batchId) {
+    var compareTwoUrls = function(urlA, urlB) {
+        if (!urlA) {
+            console.fatal("Url A is required");
+            throw "Url A is required";
+        }
+        if (!urlB) {
+            console.fatal("Url B is required");
+            throw "Url B is required";
+        }
+        console.log("Comparing Urls: " + urlA + " / " + urlB);
+        return diffTwoUrls(urlA, urlB)
+            .then()
+    };
 
-        console.log("Executing with Batch: " + batchId);
+    var executeABCompare = function(host, port, compareId) {
+        if (!host) {
+            console.fatal("Host is required");
+            throw "Host is required";
+        }
+        if (!port) {
+            console.fatal("Port is required");
+            throw "Port is required";
+        }
+        scylla = require('./services/scylla-json')(host, port);
+        console.log("Charybdis setup against server: http://" + host + ":" + port);
 
+        console.log("Executing with Compare: " + compareId);
+    }
+
+    /**
+     * Retrieves and executes a batch of reports from a Scylla Webserver.
+     * @param host Scylla Host
+     * @param port Scylla Port
+     * @param batchId Scylla Batch Id
+     * @return {*}
+     */
+    var executeOnBatch = function (host, port, batchId) {
+        if (!host) {
+            console.fatal("Host is required");
+            throw "Host is required";
+        }
+        if (!port) {
+            console.fatal("Port is required");
+            throw "Port is required";
+        }
+        scylla = require('./services/scylla-json')(host, port);
+        console.log("Charybdis setup against server: http://" + host + ":" + port);
 
         /**
          * Retrieve a list of urls we're to screenshot
@@ -164,6 +235,7 @@ module.exports = function (host, port) {
             d.reject(new Error("Batch ID is required"));
             return d.promise;
         };
+        console.log("Executing with Batch: " + batchId);
 
         return scylla.getBatch(batchId)
             .then(function (batch) {
@@ -187,9 +259,9 @@ module.exports = function (host, port) {
                         processReport(nextId)
                             .then(function (result) {
                                 console.log("Setting Result Summary");
-                                if(result.diff.distortion == 0)
-                                    batchResult.pass++
-                                else if(result.diff.distortion == -1)
+                                if (result.diff.distortion == 0)
+                                    batchResult.pass++;
+                                else if (result.diff.distortion == -1)
                                     batchResult.exception++;
                                 else
                                     batchResult.fail++;
@@ -208,12 +280,12 @@ module.exports = function (host, port) {
                         batchResult.end = new Date().toISOString();
                         console.log("Batch Processing finished at: " + batchResult.end);
                         return scylla.newBatchResult(batch._id, batchResult)
-                            .then(function(batchResult){
+                            .then(function (batchResult) {
                                 /** ATTENTION **/
                                 /* This is the final return for Charybdis */
                                 return {
-                                    batch:batch,
-                                    batchResult:batchResult
+                                    batch      : batch,
+                                    batchResult: batchResult
                                 }
                             });
                     });
@@ -226,7 +298,9 @@ module.exports = function (host, port) {
     };
 
     return {
-        execute: execute
+        executeOnBatch: executeOnBatch,
+        compareTwoUrls: compareTwoUrls,
+        executeABCompare:executeABCompare
     };
 }
 

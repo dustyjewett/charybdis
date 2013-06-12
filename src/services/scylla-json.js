@@ -49,6 +49,11 @@ module.exports = function(host, port){
         return getJsonObject(batchRequest);
     };
 
+    var getCompare = function (compareId) {
+        var compareRequest = getRequest("/compares/" + compareId);
+        return getJsonObject(compareRequest);
+    };
+
     var newReportResult = function newReportResult(reportId, result){
         var reportResultPost = postRequest("/reports/" + reportId + "/results/", result);
 

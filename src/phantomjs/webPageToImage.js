@@ -13,7 +13,7 @@ module.exports = function webPageToImage(urlToPage, outputFile) {
     var deferred = Q.defer();
 
     var childArgs = [
-        path.join(__dirname, '../', 'src', 'phantomjs', 'renderWebPage.js'),
+        path.join(__dirname, 'renderWebPage.js'),
         urlToPage,
         outputFile
     ];

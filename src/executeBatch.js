@@ -11,7 +11,7 @@ var logger = new winston.Logger({
 logger.cli();
 
 cli.parse({
-    batch: ['b', 'Run a specific batch', 'string', '51b0f1c4dd7d4f891c000007'],
+    batch: ['b', 'Run a specific batch', 'string', ''],
     host : ['h', 'Specify Scylla Hostname', 'string', 'localhost'],
     port : ['p', 'Specify Scylla Port', 'string', '3000']
 });
@@ -21,10 +21,10 @@ var charybdis = require('./charybdis');
 
 cli.main(function (args, options) {
     logger.info(args, options);
-    charybdis(options.host, options.port).execute(options.batch)
+    charybdis().executeOnBatch(options.host, options.port, options.batch)
         .then(function(result){
             logger.info("Charybdis Finished", result);
-        })
+        });
 });
 
 
