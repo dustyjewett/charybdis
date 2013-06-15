@@ -103,7 +103,7 @@ module.exports = function () {
                         if (report.masterResult) {
                             return diffTwoBase64Images(report.masterResult.result, currentResult.result)
                                 .then(function (diff) {
-                                    return scylla.newDiff({
+                                    return scylla.newResultDiff({
                                         report           : report,
                                         reportResultA    : report.masterResult,
                                         reportResultAName: report.masterResult.timestamp,
@@ -113,8 +113,8 @@ module.exports = function () {
                                         image            : diff.image
                                     })
                                 }, function (error) {
-                                    console.log("Report Diff Exception: ", error.messages);
-                                    return scylla.newDiff({
+                                    console.log("Report Result Diff Exception: ", error.messages);
+                                    return scylla.newResultDiff({
                                         report           : report,
                                         reportResultA    : report.masterResult,
                                         reportResultAName: report.masterResult.timestamp,
@@ -127,7 +127,7 @@ module.exports = function () {
                                 });
                         }
                         console.log("No Master Result defined for: ", report.name);
-                        return scylla.newDiff({
+                        return scylla.newResultDiff({
                             report           : report,
                             reportResultA    : undefined,
                             reportResultAName: undefined,
@@ -142,7 +142,7 @@ module.exports = function () {
                         return {
                             report: report,
                             result: currentResult,
-                            diff  : diff
+                            resultDiff  : diff
                         }
                     })
                     .fin(function (passthrough) {
@@ -329,16 +329,16 @@ module.exports = function () {
                         processReport(nextId)
                             .then(function (result) {
                                 console.log("Setting Result Summary");
-                                if (result.diff.distortion == 0)
+                                if (result.resultDiff.distortion == 0)
                                     batchResult.pass++;
-                                else if (result.diff.distortion == -1)
+                                else if (result.resultDiff.distortion == -1)
                                     batchResult.exception++;
                                 else
                                     batchResult.fail++;
                                 batchResult.reportResultSummaries[result.result._id] = {
-                                    diffId: result.diff._id,
-                                    diff  : result.diff.distortion,
-                                    error : (result.diff.distortion == -1) ? result.diff.error : undefined,
+                                    resultDiffId: result.resultDiff._id,
+                                    distortion  : result.resultDiff.distortion,
+                                    error : (result.resultDiff.distortion == -1) ? result.resultDiff.error : undefined,
                                     name  : result.report.name
                                 };
                             })

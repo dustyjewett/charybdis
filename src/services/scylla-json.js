@@ -71,9 +71,9 @@ module.exports = function (host, port) {
         return getJsonObject(batchResultPost);
 
     };
-    var newDiff = function newDiff(diff) {
-        var diffPost = postRequest("/diffs/", diff);
-        return getJsonObject(diffPost);
+    var newResultDiff = function newResultDiff(resultDiff) {
+        var resultDiffPost = postRequest("/result-diffs/", resultDiff);
+        return getJsonObject(resultDiffPost);
     };
 
     return {
@@ -81,7 +81,7 @@ module.exports = function (host, port) {
         getBatch        : getBatch,
         newReportResult : newReportResult,
         newBatchResult  : newBatchResult,
-        newDiff         : newDiff,
+        newResultDiff   : newResultDiff,
         getCompare      : getCompare,
         newCompareResult: newCompareResult
     };
