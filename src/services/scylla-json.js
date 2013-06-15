@@ -1,4 +1,4 @@
-module.exports = function(host, port){
+module.exports = function (host, port) {
 
     var http = require("q-io/http");
 
@@ -33,13 +33,13 @@ module.exports = function(host, port){
                             return JSON.parse(body.toString());
                         });
                 } else {
-                    console.fatal("HTTP Error (" + requestObject.path + "): ", response);
+                    console.error("HTTP Error (" + requestObject.path + "): ", response);
                     throw new Error(response);
                 }
             });
 
     };
-    var getReport = function(reportId) {
+    var getReport = function (reportId) {
         var reportRequest = getRequest("/reports/" + reportId + "?includeFullImage=true");
         return getJsonObject(reportRequest);
     };
@@ -50,11 +50,17 @@ module.exports = function(host, port){
     };
 
     var getCompare = function (compareId) {
-        var compareRequest = getRequest("/compares/" + compareId);
+        var compareRequest = getRequest("/abcompares/" + compareId);
         return getJsonObject(compareRequest);
     };
 
-    var newReportResult = function newReportResult(reportId, result){
+    var newCompareResult = function newReportResult(compareId, result) {
+        var compareResultPost = postRequest("/abcompares/" + compareId + "/results/", result);
+
+        return getJsonObject(compareResultPost);
+    };
+
+    var newReportResult = function newReportResult(reportId, result) {
         var reportResultPost = postRequest("/reports/" + reportId + "/results/", result);
 
         return getJsonObject(reportResultPost);
@@ -65,17 +71,19 @@ module.exports = function(host, port){
         return getJsonObject(batchResultPost);
 
     };
-    var newDiff = function newDiff(diff){
+    var newDiff = function newDiff(diff) {
         var diffPost = postRequest("/diffs/", diff);
         return getJsonObject(diffPost);
     };
 
     return {
-        getReport:getReport,
-        getBatch:getBatch,
-        newReportResult:newReportResult,
-        newBatchResult:newBatchResult,
-        newDiff:newDiff
+        getReport       : getReport,
+        getBatch        : getBatch,
+        newReportResult : newReportResult,
+        newBatchResult  : newBatchResult,
+        newDiff         : newDiff,
+        getCompare      : getCompare,
+        newCompareResult: newCompareResult
     };
 };
 

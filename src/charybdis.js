@@ -64,7 +64,8 @@ module.exports = function () {
                 return imagemagick.compare(masterFile, newFile, diffFile)
             })
             .then(function (info) {
-                var distortion = parseFloat(info.comparison.properties["Channel distortion"].all.split(" ")[0])
+                var distortion = info.distortion;
+                //parseFloat(info.comparison.properties["Channel distortion"].all.split(" ")[0])
                 return pngIO.readPng(diffFile)
                     .then(function (imageString) {
                         return {
@@ -153,33 +154,80 @@ module.exports = function () {
 
             })
     };
-    var diffTwoUrls = function(urlA, urlB) {
+    var getThumbnailString = function(filename){
+        var fileThumb = temp.path({suffix:'.png'});
+        return imagemagick.makeThumbnail(filename, fileThumb, 120)
+            .then(function(){
+                return pngIO.readPng(fileThumb)
+            })/*
+            .then(function(fileString){
+                fsQ.remove(fileThumb) // Cleanup
+                    .then(function(){
+                        return fileString;
+                    })
+            })*/
+    }
+    var diffTwoUrls = function(urlA, urlB, returnImages) {
         var fileA = temp.path({suffix: '.png'});
         var fileB = temp.path({suffix: '.png'});
         var diffFile = temp.path({suffix: '.png'});
         return Q.all([
             webPageToImage(urlA, fileA),
             webPageToImage(urlB, fileB)
-        ]).then(function(results){
+        ]).then(function(){
                 return imagemagick.compare(fileA, fileB, diffFile)
                     .then(function(info){
-                        console.log(info);
-                        var distortion = parseFloat(info.comparison.properties["Channel distortion"].all.split(" ")[0])
-                        console.log("Distortion:" + distortion);
-                        return pngIO.readPng(diffFile)
+                        var result = {};
+                        //console.log(info);
+                        //console.log("Pixel Diff:" + info.comparison.properties["Channel distortion"].all.split(" ")[0]);
+                        //console.log("Total Diff:" + info.distortion);
+                        return getThumbnailString(fileA)
+                            .then(function(thumbString){
+                                result.thumbA = thumbString;
+                                return getThumbnailString(fileB)
+                                    .then(function(thumbString){
+                                        result.thumbB = thumbString;
+                                        console.log("Here");
+                                    })
+                            })
+                            .then(function(){
+                                return pngIO.readPng(diffFile)
+                            })
                             .then(function (imageString) {
-                                return {
-                                    image     : imageString,
-                                    distortion: distortion
-                                };
+                                result.image      = imageString;
+                                result.distortion = info.distortion;
+                                result.warning    = info.warning;
+                                result.timestamp  = new Date().toISOString();
+                                if(returnImages){
+                                    return Q.all([
+                                        pngIO.readPng(fileA),
+                                        pngIO.readPng(fileB)
+                                    ]).spread(function(imgA, imgB){
+                                            result.resultA = imgA;
+                                            result.resultB = imgB;
+                                            return result;
+                                        });
+                                } else {
+                                    return result;
+                                }
 
                             })
                     })
-            })
+            })/*
+            .then(function(passthrough){
+                Q.allResolved([
+                        fsQ.remove(fileA),
+                        fsQ.remove(fileB),
+                        fsQ.remove(diffFile)
+                    ])
+                    .then(function () {
+                        return passthrough
+                    });
+            })*/
 
     }
 
-    var compareTwoUrls = function(urlA, urlB) {
+    var compareTwoUrls = function(urlA, urlB, returnImages) {
         if (!urlA) {
             console.fatal("Url A is required");
             throw "Url A is required";
@@ -189,8 +237,7 @@ module.exports = function () {
             throw "Url B is required";
         }
         console.log("Comparing Urls: " + urlA + " / " + urlB);
-        return diffTwoUrls(urlA, urlB)
-            .then()
+        return diffTwoUrls(urlA, urlB, returnImages)
     };
 
     var executeABCompare = function(host, port, compareId) {
@@ -205,7 +252,30 @@ module.exports = function () {
         scylla = require('./services/scylla-json')(host, port);
         console.log("Charybdis setup against server: http://" + host + ":" + port);
 
+        if (!compareId || typeof compareId !== "string" && compareId.length == 0) {
+            var d = Q.defer();
+            d.reject(new Error("AbCompare ID is required"));
+            return d.promise;
+        };
         console.log("Executing with Compare: " + compareId);
+
+        return scylla.getCompare(compareId)
+            .then(function(abCompare){
+                var compareResult = {
+                    abCompare:abCompare
+                }
+                return compareTwoUrls(abCompare.urlA, abCompare.urlB, true)
+                    .then(function(compareResults){
+                        console.log("Compare Results:\n", compareResults);
+                        return scylla.newCompareResult(compareId, compareResults)
+                            .then(function(abCompareResults){
+                                return {
+                                    abCompare:abCompare,
+                                    abCompareResult:abCompareResults
+                                }
+                            });
+                    })
+            })
     }
 
     /**
@@ -217,19 +287,16 @@ module.exports = function () {
      */
     var executeOnBatch = function (host, port, batchId) {
         if (!host) {
-            console.fatal("Host is required");
+            console.error("Host is required");
             throw "Host is required";
         }
         if (!port) {
-            console.fatal("Port is required");
+            console.error("Port is required");
             throw "Port is required";
         }
         scylla = require('./services/scylla-json')(host, port);
         console.log("Charybdis setup against server: http://" + host + ":" + port);
 
-        /**
-         * Retrieve a list of urls we're to screenshot
-         */
         if (!batchId || typeof batchId !== "string" && batchId.length == 0) {
             var d = Q.defer();
             d.reject(new Error("Batch ID is required"));
@@ -237,6 +304,9 @@ module.exports = function () {
         };
         console.log("Executing with Batch: " + batchId);
 
+        /**
+         * Retrieve a list of urls we're to screenshot
+         */
         return scylla.getBatch(batchId)
             .then(function (batch) {
                 var list = batch.reports;

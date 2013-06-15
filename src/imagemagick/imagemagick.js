@@ -89,23 +89,46 @@ module.exports = (function(){
         return mainObject;
     };
 
-    var compare = function compare(fileA, fileB, outFile){
+    var compare = function compare(fileA, fileB, outFile, pixelsToCompare){
         var execDeferred = Q.defer();
         var cmd = ["compare",
                    "-metric mae",
                    "-verbose",
-                   '"' + fileA + '"',
-                   '"' + fileB + '"',
+                   '"' + fileA + '"' + ((pixelsToCompare) ? "[" + pixelsToCompare + "+0+0]" : ""),
+                   '"' + fileB + '"' + ((pixelsToCompare) ? "[" + pixelsToCompare + "+0+0]" : ""),
                    '"' + outFile + '"'].join(" ");
+        //console.log(cmd);
         exec(cmd, function(error, stdout, stderr){
             if(error){
                 //console.log(stderr);
                 execDeferred.reject(parseCompareVerboseMAEError(stderr.split("\n")));
             } else {
-                execDeferred.fulfill(parseCompareVerboseMAEOutput(stderr.split("\n")));
+                var info = parseCompareVerboseMAEOutput(stderr.split("\n"));
+                info.distortion = parseFloat(info.comparison.properties["Channel distortion"].all.split(" ")[0]);
+                execDeferred.fulfill(info);
             }
         });
-        return execDeferred.promise;
+        return execDeferred.promise
+            .fail(function(failedOutput){
+                if(failedOutput.messages[0] == 'image widths or heights differ'){
+                    if(!pixelsToCompare) {
+                        var sizeA = failedOutput.fileA.properties.ResolutionInPixels.split("x");
+                        var sizeB = failedOutput.fileB.properties.ResolutionInPixels.split("x");
+                        var size = Math.min(parseInt(sizeA[0], 10), parseInt(sizeB[0], 10)) + "x" +
+                                   Math.min(parseInt(sizeA[1], 10), parseInt(sizeB[1], 10));
+                        return compare(fileA, fileB, outFile, size)
+                            .then(function(info){
+                                var biggest = Math.max(sizeA[0], sizeB[0]) * Math.max(sizeA[1], sizeB[1]);
+                                var smallest = Math.min(sizeA[0], sizeB[0]) * Math.min(sizeA[1], sizeB[1]);
+                                info.distortion += (biggest - smallest);
+
+                                info.warning = "Images not the same size: " + sizeA.join("x") + " vs " + sizeB.join("x");
+                                return info;
+                            });
+                    }
+                }
+                return failedOutput;
+            });
     };
 
     var identify = function identify(fileA){
