@@ -8,11 +8,15 @@ module.exports = function () {
 
     var scylla;
 
+    var tempOptions = {
+        prefix:'charybdis-',
+        suffix:'.png'
+    }
 
     var saveNewReportResult = function saveNewReportResult(report, imageFile) {
         //console.log("Saving result for file: ", imageFile);
         var fullImage;
-        var thumbFile = temp.path({suffix: '.png'});
+        var thumbFile = temp.path(tempOptions);
         var thumb;
         return pngIO.readPng(imageFile)
             .then(function (imageString) {
@@ -52,9 +56,9 @@ module.exports = function () {
      */
     var diffTwoBase64Images = function diffTwoBase64Images(imageA, imageB) {
 
-        var masterFile = temp.path({suffix: '.png'});
-        var newFile = temp.path({suffix: '.png'});
-        var diffFile = temp.path({suffix: '.png'});
+        var masterFile = temp.path(tempOptions);
+        var newFile = temp.path(tempOptions);
+        var diffFile = temp.path(tempOptions);
 
         return Q.all([
                 pngIO.writePng(masterFile, imageA),
@@ -92,7 +96,7 @@ module.exports = function () {
         return scylla.getReport(reportId)
             .then(function (report) {
                 console.log("Retrieved: " + report._id);
-                var webPageRenderPath = temp.path({suffix: '.png'});
+                var webPageRenderPath = temp.path(tempOptions);
 
                 return webPageToImage(report.url, webPageRenderPath)
                     .then(function () {
@@ -155,7 +159,7 @@ module.exports = function () {
             })
     };
     var getThumbnailString = function(filename){
-        var fileThumb = temp.path({suffix:'.png'});
+        var fileThumb = temp.path(tempOptions);
         return imagemagick.makeThumbnail(filename, fileThumb, 120)
             .then(function(){
                 return pngIO.readPng(fileThumb)
@@ -168,9 +172,9 @@ module.exports = function () {
             })*/
     }
     var diffTwoUrls = function(urlA, urlB, returnImages) {
-        var fileA = temp.path({suffix: '.png'});
-        var fileB = temp.path({suffix: '.png'});
-        var diffFile = temp.path({suffix: '.png'});
+        var fileA = temp.path(tempOptions);
+        var fileB = temp.path(tempOptions);
+        var diffFile = temp.path(tempOptions);
         return Q.all([
             webPageToImage(urlA, fileA),
             webPageToImage(urlB, fileB)
@@ -187,7 +191,6 @@ module.exports = function () {
                                 return getThumbnailString(fileB)
                                     .then(function(thumbString){
                                         result.thumbB = thumbString;
-                                        console.log("Here");
                                     })
                             })
                             .then(function(){
@@ -266,7 +269,7 @@ module.exports = function () {
                 }
                 return compareTwoUrls(abCompare.urlA, abCompare.urlB, true)
                     .then(function(compareResults){
-                        console.log("Compare Results:\n", compareResults);
+                        //console.log("Compare Results:\n", compareResults);
                         return scylla.newCompareResult(compareId, compareResults)
                             .then(function(abCompareResults){
                                 return {
