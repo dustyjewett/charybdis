@@ -9,8 +9,8 @@ module.exports = function () {
     var scylla;
 
     var tempOptions = {
-        prefix:'charybdis-',
-        suffix:'.png'
+        prefix: 'charybdis-',
+        suffix: '.png'
     }
 
     var saveNewReportResult = function saveNewReportResult(report, imageFile) {
@@ -144,9 +144,9 @@ module.exports = function () {
                     })
                     .then(function (diff) {
                         return {
-                            report: report,
-                            result: currentResult,
-                            resultDiff  : diff
+                            report    : report,
+                            result    : currentResult,
+                            resultDiff: diff
                         }
                     })
                     .fin(function (passthrough) {
@@ -158,54 +158,57 @@ module.exports = function () {
 
             })
     };
-    var getThumbnailString = function(filename){
+
+    var getThumbnailString = function (filename) {
         var fileThumb = temp.path(tempOptions);
         return imagemagick.makeThumbnail(filename, fileThumb, 120)
-            .then(function(){
+            .then(function () {
                 return pngIO.readPng(fileThumb)
-            })/*
-            .then(function(fileString){
-                fsQ.remove(fileThumb) // Cleanup
-                    .then(function(){
-                        return fileString;
-                    })
-            })*/
-    }
-    var diffTwoUrls = function(urlA, urlB, returnImages) {
+            });
+        /*
+         .then(function(fileString){
+         fsQ.remove(fileThumb) // Cleanup
+         .then(function(){
+         return fileString;
+         })
+         })*/
+    };
+
+    var diffTwoUrls = function (urlA, urlB, returnImages) {
         var fileA = temp.path(tempOptions);
         var fileB = temp.path(tempOptions);
         var diffFile = temp.path(tempOptions);
         return Q.all([
-            webPageToImage(urlA, fileA),
-            webPageToImage(urlB, fileB)
-        ]).then(function(){
+                webPageToImage(urlA, fileA),
+                webPageToImage(urlB, fileB)
+            ]).then(function () {
                 return imagemagick.compare(fileA, fileB, diffFile)
-                    .then(function(info){
+                    .then(function (info) {
                         var result = {};
                         //console.log(info);
                         //console.log("Pixel Diff:" + info.comparison.properties["Channel distortion"].all.split(" ")[0]);
                         //console.log("Total Diff:" + info.distortion);
                         return getThumbnailString(fileA)
-                            .then(function(thumbString){
+                            .then(function (thumbString) {
                                 result.thumbA = thumbString;
                                 return getThumbnailString(fileB)
-                                    .then(function(thumbString){
+                                    .then(function (thumbString) {
                                         result.thumbB = thumbString;
                                     })
                             })
-                            .then(function(){
+                            .then(function () {
                                 return pngIO.readPng(diffFile)
                             })
                             .then(function (imageString) {
-                                result.image      = imageString;
+                                result.image = imageString;
                                 result.distortion = info.distortion;
-                                result.warning    = info.warning;
-                                result.timestamp  = new Date().toISOString();
-                                if(returnImages){
+                                result.warning = info.warning;
+                                result.timestamp = new Date().toISOString();
+                                if (returnImages) {
                                     return Q.all([
-                                        pngIO.readPng(fileA),
-                                        pngIO.readPng(fileB)
-                                    ]).spread(function(imgA, imgB){
+                                            pngIO.readPng(fileA),
+                                            pngIO.readPng(fileB)
+                                        ]).spread(function (imgA, imgB) {
                                             result.resultA = imgA;
                                             result.resultB = imgB;
                                             return result;
@@ -216,21 +219,22 @@ module.exports = function () {
 
                             })
                     })
-            })/*
-            .then(function(passthrough){
-                Q.allResolved([
-                        fsQ.remove(fileA),
-                        fsQ.remove(fileB),
-                        fsQ.remove(diffFile)
-                    ])
-                    .then(function () {
-                        return passthrough
-                    });
-            })*/
+            })
+        /*
+         .then(function(passthrough){
+         Q.allResolved([
+         fsQ.remove(fileA),
+         fsQ.remove(fileB),
+         fsQ.remove(diffFile)
+         ])
+         .then(function () {
+         return passthrough
+         });
+         })*/
 
     }
 
-    var compareTwoUrls = function(urlA, urlB, returnImages) {
+    var compareTwoUrls = function (urlA, urlB, returnImages) {
         if (!urlA) {
             console.fatal("Url A is required");
             throw "Url A is required";
@@ -243,7 +247,7 @@ module.exports = function () {
         return diffTwoUrls(urlA, urlB, returnImages)
     };
 
-    var executeABCompare = function(host, port, compareId) {
+    var executeABCompare = function (host, port, compareId) {
         if (!host) {
             console.fatal("Host is required");
             throw "Host is required";
@@ -259,22 +263,23 @@ module.exports = function () {
             var d = Q.defer();
             d.reject(new Error("AbCompare ID is required"));
             return d.promise;
-        };
+        }
+
         console.log("Executing with Compare: " + compareId);
 
         return scylla.getCompare(compareId)
-            .then(function(abCompare){
+            .then(function (abCompare) {
                 var compareResult = {
-                    abCompare:abCompare
+                    abCompare: abCompare
                 }
                 return compareTwoUrls(abCompare.urlA, abCompare.urlB, true)
-                    .then(function(compareResults){
+                    .then(function (compareResults) {
                         //console.log("Compare Results:\n", compareResults);
                         return scylla.newCompareResult(compareId, compareResults)
-                            .then(function(abCompareResults){
+                            .then(function (abCompareResults) {
                                 return {
-                                    abCompare:abCompare,
-                                    abCompareResult:abCompareResults
+                                    abCompare      : abCompare,
+                                    abCompareResult: abCompareResults
                                 }
                             });
                     })
@@ -304,7 +309,7 @@ module.exports = function () {
             var d = Q.defer();
             d.reject(new Error("Batch ID is required"));
             return d.promise;
-        };
+        }
         console.log("Executing with Batch: " + batchId);
 
         /**
@@ -341,13 +346,13 @@ module.exports = function () {
                                 batchResult.reportResultSummaries[result.result._id] = {
                                     resultDiffId: result.resultDiff._id,
                                     distortion  : result.resultDiff.distortion,
-                                    error : (result.resultDiff.distortion == -1) ? result.resultDiff.error : undefined,
-                                    name  : result.report.name
+                                    error       : (result.resultDiff.distortion == -1) ? result.resultDiff.error : undefined,
+                                    name        : result.report.name
                                 };
                             })
                     );
 
-                };
+                }
                 return Q.all(promises)
                     .then(function () {
                         batchResult.end = new Date().toISOString();
@@ -371,9 +376,12 @@ module.exports = function () {
     };
 
     return {
-        executeOnBatch: executeOnBatch,
-        compareTwoUrls: compareTwoUrls,
-        executeABCompare:executeABCompare
+        webPageToImage  : webPageToImage,
+        imagemagick     : imagemagick,
+        pngIO           : pngIO,
+        executeOnBatch  : executeOnBatch,
+        compareTwoUrls  : compareTwoUrls,
+        executeABCompare: executeABCompare
     };
 }
 
