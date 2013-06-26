@@ -25,6 +25,9 @@ if (system.args.length < 3 || system.args.length > 5) {
     if (system.args.length > 4) {
         page.zoomFactor = system.args[4];
     }
+    if(address.indexOf("?") == -1) {
+        address += "?phantomjs";
+    }
     page.open(address, function (status) {
         if (status !== 'success') {
             console.log('Unable to load the address!');
