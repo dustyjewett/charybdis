@@ -33,8 +33,16 @@ module.exports = function (host, port) {
                             return JSON.parse(body.toString());
                         });
                 } else {
-                    console.error("HTTP Error (" + requestObject.path + "): ", response);
-                    throw new Error(response);
+                    console.error("HTTP Error (" + requestObject.path + "): ", response.status);
+                    if(response.body) {
+                        return response.body.read()
+                            .then(function (body) {
+                                console.error("Error Body: ", body);
+                                throw new Error("[scylla-json] Error: " + response.status);
+                            });
+                    } else {
+                        throw new Error(response);
+                    }
                 }
             });
 
