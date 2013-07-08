@@ -3,14 +3,20 @@ module.exports = function (host, port) {
     var http = require("q-io/http");
 
     var newRequest = function (method, path, body) {
-        return {
+        var req = {
             host   : host,
             port   : port,
             method : method,
             path   : path,
-            headers: {"Content-type": "application/json"},
             body   : (body) ? [JSON.stringify(body)] : undefined
         };
+        if(method == "GET" || method == "DEL"){
+            req.headers = {};//{"Content-type": "application/json"};
+        } else {
+            req.headers = {"Content-type": "application/json"};
+        }
+
+        return req;
     };
 
     var getRequest = function (path) {

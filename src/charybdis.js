@@ -80,7 +80,7 @@ module.exports = function () {
                     })
             })
             .fin(function (passthrough) {
-                return Q.allResolved([
+                return Q.allSettled([
                         fsQ.remove(masterFile),
                         fsQ.remove(newFile),
                         fsQ.remove(diffFile)
