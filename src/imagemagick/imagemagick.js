@@ -31,7 +31,6 @@ module.exports = (function(){
     };
 
     var parseCompareVerboseMAEOutput = function parseCompareVerboseMAEOutput(lines){
-        if(lines[lines.length-1] == "") lines.pop();
         var info = {
             fileA: parseIdentifySingleLineOutput(lines.shift()),
             fileB: parseIdentifySingleLineOutput(lines.shift()),
@@ -79,9 +78,9 @@ module.exports = (function(){
                 currentObject = objectStack[objectStack.length-1];
             } else if (numOfSpaces / 2 > objectStack.length) {
                 var nextObj = {};
-                currentObject[lastProperty] = nextObj
-                currentObject = nextObj
-                objectStack.push(currentObject)
+                currentObject[lastProperty] = nextObj;
+                currentObject = nextObj;
+                objectStack.push(currentObject);
             }
             lastProperty = propName.trim();
             currentObject[lastProperty] = value;
