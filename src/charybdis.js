@@ -8,15 +8,49 @@ module.exports = function () {
 
     var scylla;
 
-    var tempOptions = {
-        prefix: 'charybdis-',
-        suffix: '.png'
+    var tmpOpts = {
+        reportThumb:{
+            prefix: 'charybdis-rt-',
+            suffix: '.png'
+        },
+        diffmaster:{
+            prefix: 'charybdis-dm-',
+            suffix: '.png'
+        },
+        diffnew:{
+            prefix: 'charybdis-dn-',
+            suffix: '.png'
+        },
+        diffdiff:{
+            prefix: 'charybdis-dd-',
+            suffix: '.png'
+        },
+        reportRender:{
+            prefix: 'charybdis-rr-',
+            suffix: '.png'
+        },
+        thumbString:{
+            prefix: 'charybdis-ts-',
+            suffix: '.png'
+        },
+        compareA:{
+            prefix: 'charybdis-ca-',
+            suffix: '.png'
+        },
+        compareB:{
+            prefix: 'charybdis-cb-',
+            suffix: '.png'
+        },
+        compareC:{
+            prefix: 'charybdis-cc-',
+            suffix: '.png'
+        }
     }
 
     var saveNewReportResult = function saveNewReportResult(report, imageFile) {
         //console.log("Saving result for file: ", imageFile);
         var fullImage;
-        var thumbFile = temp.path(tempOptions);
+        var thumbFile = temp.path(tmpOpts.reportThumb);
         var thumb;
         return pngIO.readPng(imageFile)
             .then(function (imageString) {
@@ -56,9 +90,9 @@ module.exports = function () {
      */
     var diffTwoBase64Images = function diffTwoBase64Images(imageA, imageB) {
 
-        var masterFile = temp.path(tempOptions);
-        var newFile = temp.path(tempOptions);
-        var diffFile = temp.path(tempOptions);
+        var masterFile = temp.path(tmpOpts.diffmaster);
+        var newFile = temp.path(tmpOpts.diffnew);
+        var diffFile = temp.path(tmpOpts.diffdiff);
 
         return Q.all([
                 pngIO.writePng(masterFile, imageA),
@@ -96,7 +130,7 @@ module.exports = function () {
         return scylla.getReport(reportId)
             .then(function (report) {
                 console.log("Retrieved: " + report._id);
-                var webPageRenderPath = temp.path(tempOptions);
+                var webPageRenderPath = temp.path(tmpOpts.reportRender);
 
                 return webPageToImage(report.url, webPageRenderPath)
                     .then(function () {
@@ -160,7 +194,7 @@ module.exports = function () {
     };
 
     var getThumbnailString = function (filename) {
-        var fileThumb = temp.path(tempOptions);
+        var fileThumb = temp.path(tmpOpts.thumbString);
         return imagemagick.makeThumbnail(filename, fileThumb, 120)
             .then(function () {
                 return pngIO.readPng(fileThumb)
@@ -175,9 +209,9 @@ module.exports = function () {
     };
 
     var diffTwoUrls = function (urlA, urlB, returnImages) {
-        var fileA = temp.path(tempOptions);
-        var fileB = temp.path(tempOptions);
-        var diffFile = temp.path(tempOptions);
+        var fileA = temp.path(tmpOpts.compareA);
+        var fileB = temp.path(tmpOpts.compareB);
+        var diffFile = temp.path(tmpOpts.compareC);
         return Q.all([
                 webPageToImage(urlA, fileA),
                 webPageToImage(urlB, fileB)
