@@ -198,14 +198,13 @@ module.exports = function () {
         return imagemagick.makeThumbnail(filename, fileThumb, 120)
             .then(function () {
                 return pngIO.readPng(fileThumb)
+            })
+            .then(function(fileString){
+                return fsQ.remove(fileThumb) // Cleanup
+                .then(function(){
+                   return fileString;
+                })
             });
-        /*
-         .then(function(fileString){
-         fsQ.remove(fileThumb) // Cleanup
-         .then(function(){
-         return fileString;
-         })
-         })*/
     };
 
     var diffTwoUrls = function (urlA, urlB, returnImages) {
