@@ -214,7 +214,8 @@ module.exports = function () {
         return Q.all([
                 webPageToImage(urlA, fileA),
                 webPageToImage(urlB, fileB)
-            ]).then(function () {
+            ])
+            .then(function () {
                 return imagemagick.compare(fileA, fileB, diffFile)
                     .then(function (info) {
                         var result = {};
@@ -246,24 +247,22 @@ module.exports = function () {
                                             result.resultB = imgB;
                                             return result;
                                         });
-                                } else {
-                                    return result;
                                 }
 
+                                return result;
                             })
                     })
             })
-        /*
-         .then(function(passthrough){
-         Q.allResolved([
-         fsQ.remove(fileA),
-         fsQ.remove(fileB),
-         fsQ.remove(diffFile)
-         ])
-         .then(function () {
-         return passthrough
-         });
-         })*/
+            .then(function(passthrough){
+                return Q.allSettled([
+                    fsQ.remove(fileA),
+                    fsQ.remove(fileB),
+                    fsQ.remove(diffFile)
+                ])
+                .then(function () {
+                    return passthrough;
+                });
+            })
 
     }
 
