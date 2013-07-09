@@ -6,14 +6,18 @@ imagemagick.identify("src/test/fileA.png")
         console.log(info);
     });
 */
-imagemagick.compare("src/test/fileA.png", "src/test/fileB.png", "src/test/output.png")
+imagemagick.compare("test/unit/imagemagick/resources/fileA.png",
+        "test/unit/imagemagick/resources/fileB.png",
+        "test/unit/imagemagick/resources/output.png")
     .then(function(info){
         console.log(info.comparison);
     },function(error){
         console.log(error);
     });
 
-imagemagick.compare("src/test/fileD.png", "src/test/fileE.png", "src/test/output2.png")
+imagemagick.compare("test/unit/imagemagick/resources/fileD.png",
+        "test/unit/imagemagick/resources/fileE.png",
+        "test/unit/imagemagick/resources/output2.png")
     .then(function(info){
         console.log(info.comparison);
     },function(error){
