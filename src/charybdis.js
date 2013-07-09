@@ -76,7 +76,13 @@ module.exports = function () {
             }, function (error) {
                 console.log("Unable to open file: ", error);
                 throw new Error(error);
-            });
+            })
+            .then(function (passthrough) {
+                return fsQ.remove(thumbFile)
+                    .then(function () {
+                        return passthrough
+                    });
+            })
     };
 
 
@@ -188,7 +194,7 @@ module.exports = function () {
                             .then(function () {
                                 return passthrough
                             });
-                    })
+                    });
 
             })
     };
