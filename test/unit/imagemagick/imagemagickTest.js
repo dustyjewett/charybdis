@@ -16,7 +16,7 @@ describe('imagemagick', function(){
                     "test/unit/imagemagick/resources/fileB.png",
                     "test/unit/imagemagick/resources/output.png"
                 ).then(function(info){
-                    expect(info.comparison.properties['Channel distortion'].all).to.equal('34.2262 (0.000522258)')
+                    expect(info.comparison.properties['Channel distortion'].all, "all").to.equal('4541.48 (0.0692985)')
                 });
 
         });
@@ -26,7 +26,17 @@ describe('imagemagick', function(){
                     "test/unit/imagemagick/resources/fileE.png",
                     "test/unit/imagemagick/resources/output2.png"
                 ).then(function(info){
-                    expect(info.comparison.properties['Channel distortion'].all).to.equal('3446414641.22624545 (0.00052225807082410708241)')
+                    expect(info.comparison.properties['Channel distortion'].all, "all").to.equal('7211.05 (0.110034)')
+                });
+
+        });
+        it('finds no diff when comparing exact duplicate', function(done){
+            return imagemagick.compare(
+                    "test/unit/imagemagick/resources/fileA.png",
+                    "test/unit/imagemagick/resources/fileA.png",
+                    "test/unit/imagemagick/resources/output3.png"
+                ).then(function(info){
+                    expect(info.comparison.properties['Channel distortion'].all, "all").to.equal('0 (0)')
                 });
 
         });
