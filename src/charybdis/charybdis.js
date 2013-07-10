@@ -411,9 +411,6 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
     };
 
     return {
-        webPageToImage  : webPageToImage,
-        imagemagick     : imagemagick,
-        pngIO           : pngIO,
         executeOnBatch  : executeOnBatch,
         compareTwoUrls  : compareTwoUrls,
         executeABCompare: executeABCompare
