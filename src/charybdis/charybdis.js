@@ -1,10 +1,7 @@
-module.exports = function () {
+module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
     var Q = require('q');
     var fsQ = require("q-io/fs");
-    var webPageToImage = require("./phantomjs/webPageToImage");
     var temp = require("temp");
-    var imagemagick = require('./imagemagick/imagemagick');
-    var pngIO = require('./pngIO');
 
     var scylla;
 
@@ -294,7 +291,7 @@ module.exports = function () {
             console.fatal("Port is required");
             throw "Port is required";
         }
-        scylla = require('./services/scylla-json')(host, port);
+        scylla = scyllaService(host, port);
         console.log("Charybdis setup against server: http://" + host + ":" + port);
 
         if (!compareId || typeof compareId !== "string" && compareId.length == 0) {
@@ -340,7 +337,7 @@ module.exports = function () {
             console.error("Port is required");
             throw "Port is required";
         }
-        scylla = require('./services/scylla-json')(host, port);
+        scylla = scyllaService(host, port);
         console.log("Charybdis setup against server: http://" + host + ":" + port);
 
         if (!batchId || typeof batchId !== "string" && batchId.length == 0) {

@@ -17,7 +17,7 @@ cli.parse({
 });
 
 
-var charybdis = require('./charybdis');
+var charybdis = require('./index');
 
 cli.main(function (args, options) {
     logger.info(args, options);

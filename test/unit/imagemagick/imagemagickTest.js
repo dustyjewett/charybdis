@@ -7,6 +7,21 @@ var Q = require('q');
 var imagemagick = require('../../../src/imagemagick/imagemagick.js');
 
 describe('imagemagick', function(){
+    describe('api', function(){
+
+
+        it('exports compare', function(){
+            expect(imagemagick.compare).to.exist;
+        });
+        it('exports identify', function(){
+            expect(imagemagick.identify).to.exist;
+        });
+        it('exports makeThumbnail', function(){
+            expect(imagemagick.makeThumbnail).to.exist;
+        });
+
+
+    })
 
     describe('compare', function(){
 
