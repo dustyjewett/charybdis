@@ -22,8 +22,8 @@ module.exports = function webPageToImage(urlToPage, outputFile) {
         if(error) {
             deferred.reject(error);
         } else {
-            console.log("Rendered Url: " + urlToPage);
-            console.log("To File: " + outputFile);
+            //console.log("Rendered Url: " + urlToPage);
+            //console.log("To File: " + outputFile);
             deferred.resolve(stdout);
         }
     });
