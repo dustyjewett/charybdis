@@ -18,9 +18,12 @@ module.exports = function webPageToImage(urlToPage, outputFile) {
         outputFile
     ];
 
+    //console.log(binPath + " " + childArgs.join(" "));
     execFile(binPath, childArgs, function(error, stdout, stderr) {
+        //console.error("Stdout", stdout);
+        //console.error("Stderr", stderr);
         if(error) {
-            deferred.reject(error);
+            deferred.reject(stderr);
         } else {
             //console.log("Rendered Url: " + urlToPage);
             //console.log("To File: " + outputFile);

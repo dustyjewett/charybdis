@@ -8,6 +8,7 @@
 var page = require('webpage').create(),
     system = require('system'),
     address, output, size;
+var fs = require("fs");
 
 if (system.args.length < 3 || system.args.length > 5) {
     console.log('Usage: rener-web-page.js URL filename [paperwidth*paperheight|paperformat] [zoom]');
@@ -28,10 +29,16 @@ if (system.args.length < 3 || system.args.length > 5) {
     if(address.indexOf("?") == -1) {
         address += "?phantomjs";
     }
+    system.stdout.write("Opening Page: " + address + "\n");
     page.open(address, function (status) {
+            system.stdout.write(status);
+        //fs.write("/dev/stdout", status, "w");
         if (status !== 'success') {
-            console.log('Unable to load the address!');
-            phantom.exit();
+            system.stdout.write(address + ":" + status);
+            system.stderr.write("failure");
+//            console.log('Unable to load the address!');
+
+            phantom.exit(1);
         } else {
             window.setTimeout(function () {
                 page.render(output);
@@ -39,4 +46,12 @@ if (system.args.length < 3 || system.args.length > 5) {
             }, 200);
         }
     });
+    page.onResourceReceived = function(resource) {
+        system.stdout.write("Received:  " + resource.url + " : " + resource.status + "\n");
+        if (resource.url == address && parseInt(resource.status) >= 400 ) {
+            //system.stdout.write(address + ":" + resource.status);
+            system.stderr.write("failure");
+            phantom.exit(1);
+        }
+    };
 }
