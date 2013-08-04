@@ -23,6 +23,7 @@ describe('webPageToImage', function(){
         describe('200 OK', function(){
             before(function(){
                 server = http.createServer(function(request,response){
+                    console.log("Got Request/n/n");
                     response.writeHead(200, {"Content-Type":"text/html"});
                     response.write("<!doctype html><body bgcolor='#FF0000'></body>");
                     response.end();
@@ -34,6 +35,7 @@ describe('webPageToImage', function(){
                 server.close();
             });
             it('renders a file', function(done){
+                this.timeout(2000);
                 var tmp = "/tmp/testHappyPath.png";
                 webPageToImage("http://localhost:" + serverPort + "/", tmp)
                     .then(function(stdout){
@@ -64,6 +66,7 @@ describe('webPageToImage', function(){
                 server.close();
             });
             it('renders a file', function(done){
+                this.timeout(2000);
                 var tmp = "/tmp/testHappyPath.png";
                 webPageToImage("http://localhost:" + serverPort + "/", tmp)
                     .then(function(stdout){
@@ -94,11 +97,12 @@ describe('webPageToImage', function(){
             });
             it('handles 404 errors', function(done){
                 var tmp = "/tmp/testHappyPath.png";
-                webPageToImage("http://localhost:" + serverPort + "/", tmp)
+                return webPageToImage("http://localhost:" + serverPort + "/", tmp)
                     .then(function(stdout){
-                        done(new Error("Should not have resolved the promise"));
+                        throw new Error("Should not have resolved the promise");
                     }, function(err){
-                        done();
+                        expect(err).to.include.keys("message");
+                        expect(err.message).to.contain("404");
                     })
 
             });
@@ -118,12 +122,32 @@ describe('webPageToImage', function(){
                 server.close();
             });
             it('handles 500 errors', function(done){
+                this.timeout(2000);
                 var tmp = "/tmp/testHappyPath.png";
-                webPageToImage("http://localhost:" + serverPort + "/", tmp)
+                return webPageToImage("http://localhost:" + serverPort + "/", tmp)
                     .then(function(stdout){
-                        done(new Error("Should not have resolved the promise"));
+                        throw new Error("Should not have resolved the promise");
                     }, function(err){
-                        done();
+                        expect(err).to.include.keys("message");
+                        expect(err.message).to.contain("500");
+                    })
+
+            });
+        });
+
+        describe('no response', function(){
+            before(function(){
+                serverPort = Math.round((Math.random() * 50000) + 10000);
+            });
+            it('handles no response errors', function(done){
+                this.timeout(2000);
+                var tmp = "/tmp/testHappyPath.png";
+                return webPageToImage("http://localhost:" + serverPort + "/", tmp)
+                    .then(function(stdout){
+                        throw new Error("Should not have resolved the promise");
+                    }, function(err){
+                        expect(err).to.include.keys("message");
+                        expect(err.message).to.contain("Unable to load");
                     })
 
             });

@@ -23,7 +23,7 @@ module.exports = function webPageToImage(urlToPage, outputFile) {
         //console.error("Stdout", stdout);
         //console.error("Stderr", stderr);
         if(error) {
-            deferred.reject(stderr);
+            deferred.reject({message:stderr});
         } else {
             //console.log("Rendered Url: " + urlToPage);
             //console.log("To File: " + outputFile);

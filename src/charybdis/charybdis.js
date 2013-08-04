@@ -137,6 +137,9 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                 return webPageToImage(report.url, webPageRenderPath)
                     .then(function () {
                         return saveNewReportResult(report, webPageRenderPath);
+                    }, function(error){
+                        console.log(error);
+                        throw error;
                     })
             })
     };

@@ -31,11 +31,11 @@ if (system.args.length < 3 || system.args.length > 5) {
     }
     system.stdout.write("Opening Page: " + address + "\n");
     page.open(address, function (status) {
-            system.stdout.write(status);
+            //system.stdout.write(status);
         //fs.write("/dev/stdout", status, "w");
         if (status !== 'success') {
-            system.stdout.write(address + ":" + status);
-            system.stderr.write("failure");
+            //system.stdout.write(address + ":" + status);
+            system.stderr.write("Unable to load website at URL: " + address);
 //            console.log('Unable to load the address!');
 
             phantom.exit(1);
@@ -50,7 +50,7 @@ if (system.args.length < 3 || system.args.length > 5) {
         system.stdout.write("Received:  " + resource.url + " : " + resource.status + "\n");
         if (resource.url == address && parseInt(resource.status) >= 400 ) {
             //system.stdout.write(address + ":" + resource.status);
-            system.stderr.write("failure");
+            system.stderr.write("Unable to capture page, received error: " + resource.status);
             phantom.exit(1);
         }
     };
