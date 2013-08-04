@@ -16,6 +16,7 @@ module.exports = function () {
         webPageToImage  : webPageToImage,
         imagemagick     : imagemagick,
         pngIO           : pngIO,
+        executeOnReport : charybdis.executeOnReport,
         executeOnBatch  : charybdis.executeOnBatch,
         compareTwoUrls  : charybdis.compareTwoUrls,
         executeABCompare: charybdis.executeABCompare
