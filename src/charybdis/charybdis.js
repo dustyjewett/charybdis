@@ -71,7 +71,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                 return scylla.newReportResult(report._id, result);
 
             }, function (error) {
-                console.log("Unable to open file: ", error);
+                console.log("During Report: " + report + " Unable to open file: ", error);
                 throw new Error(error);
             })
             .then(function (passthrough) {
@@ -135,12 +135,26 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                 var webPageRenderPath = temp.path(tmpOpts.reportRender);
 
                 return webPageToImage(report.url, webPageRenderPath)
-                    .then(function () {
-                        return saveNewReportResult(report, webPageRenderPath);
+                    .then(function (message) {
+                        return saveNewReportResult(report, webPageRenderPath)
+                            .then(function (passthrough) {
+                                return fsQ.remove(webPageRenderPath)
+                                    .then(function () {
+                                        return passthrough
+                                    });
+                            });
                     }, function(error){
-                        console.log(error);
-                        throw error;
-                    })
+                        var result = {
+                            report   : report,
+                            timestamp: new Date().toISOString(),
+                            "result" : "",
+                            thumb    : ""
+                        };
+                        return scylla.newReportResult(report._id, result)
+                            .then(function(result){
+                                throw new Error({result:result._id, message:error.message});
+                            })
+                    });
             })
     };
 
@@ -193,12 +207,17 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                     result    : currentResult,
                     resultDiff: diff
                 }
-            })
-            .fin(function (passthrough) {
-                return fsQ.remove(webPageRenderPath)
-                    .then(function () {
-                        return passthrough
-                    });
+            }, function(error){
+                return {
+                    report:reportId,
+                    result:error.result,
+                    resultDiff:{
+                        distortion:-1,
+                        error:{
+                            messages:[error.message]
+                        }
+                    }
+                }
             });
 
     };
