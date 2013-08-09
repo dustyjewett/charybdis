@@ -17,6 +17,7 @@ module.exports = function webPageToImage(urlToPage, outputFile) {
         urlToPage,
         outputFile
     ];
+    //With all of these console statements, you'd think I have to debug this a lot...
 
     //console.log(binPath + " " + childArgs.join(" "));
     execFile(binPath, childArgs, function(error, stdout, stderr) {
