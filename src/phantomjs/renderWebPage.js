@@ -47,7 +47,7 @@ if (system.args.length < 3 || system.args.length > 5) {
         }
     });
     page.onResourceReceived = function(resource) {
-        system.stdout.write("Received:  " + resource.url + " : " + resource.status + "\n");
+        //system.stdout.write("Received:  " + resource.url + " : " + resource.status + "\n");
         if (resource.url == address && parseInt(resource.status) >= 400 ) {
             //system.stdout.write(address + ":" + resource.status);
             system.stderr.write("Unable to capture page, received error: " + resource.status);
