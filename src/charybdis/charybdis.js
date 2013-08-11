@@ -3,6 +3,8 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
     var fsQ = require("q-io/fs");
     var temp = require("temp");
 
+    var util = require("util");
+
     var scylla;
 
     var tmpOpts = {
@@ -128,48 +130,49 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             });
     };
 
-    var renderAndSaveNewReportResult = function renderAndSaveNewReportResult(reportId) {
-        return scylla.getReport(reportId)
-            .then(function (report) {
-                console.log("Retrieved: " + report._id);
-                var webPageRenderPath = temp.path(tmpOpts.reportRender);
+    var renderAndSaveNewReportResult = function renderAndSaveNewReportResult(report) {
+        console.log("Retrieved: " + report._id);
+        var webPageRenderPath = temp.path(tmpOpts.reportRender);
 
-                return webPageToImage(report.url, webPageRenderPath)
-                    .then(function (message) {
-                        return saveNewReportResult(report, webPageRenderPath)
-                            .then(function (passthrough) {
-                                return fsQ.remove(webPageRenderPath)
-                                    .then(function () {
-                                        return passthrough
-                                    });
+        return webPageToImage(report.url, webPageRenderPath)
+            .then(function (message) {
+                return saveNewReportResult(report, webPageRenderPath)
+                    .then(function (passthrough) {
+                        return fsQ.remove(webPageRenderPath)
+                            .then(function () {
+                                return passthrough
                             });
-                    }, function(error){
-                        var result = {
-                            report   : report,
-                            timestamp: new Date().toISOString(),
-                            "result" : "",
-                            thumb    : ""
-                        };
-                        return scylla.newReportResult(report._id, result)
-                            .then(function(result){
-                                throw new Error({result:result._id, message:error.message});
-                            })
                     });
-            })
+            }, function(error){
+                console.error('Error capturing screenshot', util.inspect(error));
+                var result = {
+                    report   : report,
+                    timestamp: new Date().toISOString(),
+                    "result" : "",
+                    thumb    : ""
+                };
+                return scylla.newReportResult(report._id, result);
+            });
     };
 
     var processReport = function (reportId) {
+        var currentReport;
         var currentResult;
-        return renderAndSaveNewReportResult(reportId)
+        return scylla.getReport(reportId)
+            .then(function (report) {
+                currentReport = report;
+                return renderAndSaveNewReportResult(currentReport);
+            })
             .then(function (newResult) {
+                //console.log(util.inspect(newResult));
                 currentResult = newResult;
-                if (report.masterResult) {
-                    return diffTwoBase64Images(report.masterResult.result, currentResult.result)
+                if (currentReport.masterResult) {
+                    return diffTwoBase64Images(currentReport.masterResult.result, currentResult.result)
                         .then(function (diff) {
                             return scylla.newResultDiff({
-                                report           : report,
-                                reportResultA    : report.masterResult,
-                                reportResultAName: report.masterResult.timestamp,
+                                report           : currentReport,
+                                reportResultA    : currentReport.masterResult,
+                                reportResultAName: currentReport.masterResult.timestamp,
                                 reportResultB    : currentResult,
                                 reportResultBName: currentResult.timestamp,
                                 distortion       : diff.distortion,
@@ -178,9 +181,9 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                         }, function (error) {
                             console.log("Report Result Diff Exception: ", error.messages);
                             return scylla.newResultDiff({
-                                report           : report,
-                                reportResultA    : report.masterResult,
-                                reportResultAName: report.masterResult.timestamp,
+                                report           : currentReport,
+                                reportResultA    : currentReport.masterResult,
+                                reportResultAName: currentReport.masterResult.timestamp,
                                 reportResultB    : currentResult,
                                 reportResultBName: currentResult.timestamp,
                                 distortion       : -1,
@@ -189,9 +192,9 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                             })
                         });
                 }
-                console.log("No Master Result defined for: ", report.name);
+                console.log("No Master Result defined for: ", currentReport.name);
                 return scylla.newResultDiff({
-                    report           : report,
+                    report           : currentReport,
                     reportResultA    : undefined,
                     reportResultAName: undefined,
                     reportResultB    : undefined,
@@ -203,11 +206,13 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             })
             .then(function (diff) {
                 return {
-                    report    : report,
+                    report    : currentReport,
                     result    : currentResult,
                     resultDiff: diff
                 }
             }, function(error){
+                console.error("Error Saving Result:", util.inspect(error));
+                console.error(error.stack);
                 return {
                     report:reportId,
                     result:error.result,
@@ -409,6 +414,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                         processReport(nextId)
                             .then(function (result) {
                                 console.log("Setting Result Summary");
+                                console.log(util.inspect(result));
                                 if (result.resultDiff.distortion == 0)
                                     batchResult.pass++;
                                 else if (result.resultDiff.distortion == -1)
