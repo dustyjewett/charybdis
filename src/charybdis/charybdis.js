@@ -375,7 +375,10 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
     var executeOnReport = function (host, port, reportId) {
         validateInputs(host, port, reportId);
         console.log("Executing with Report: " + reportId);
-        return renderAndSaveNewReportResult(reportId);
+        return scylla.getReport(reportId)
+            .then(function (report) {
+                return renderAndSaveNewReportResult(report);
+            });
     };
 
     /**
