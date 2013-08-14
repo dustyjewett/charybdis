@@ -398,7 +398,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         return scylla.getBatch(batchId)
             .then(function (batch) {
                 var list = batch.reports;
-                console.log("Processing Reports: ", list);
+                //console.log("Processing Reports: ", list);
                 var batchResult = {
                     batch                : batch,
                     pass                 : 0,
