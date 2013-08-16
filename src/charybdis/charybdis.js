@@ -417,7 +417,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                         processReport(nextId)
                             .then(function (result) {
                                 console.log("Setting Result Summary");
-                                console.log(util.inspect(result));
+                                //console.log(util.inspect(result));
                                 if (result.resultDiff.distortion == 0)
                                     batchResult.pass++;
                                 else if (result.resultDiff.distortion == -1)
@@ -440,6 +440,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                         console.log("Batch Processing finished at: " + batchResult.end);
                         return scylla.newBatchResult(batch._id, batchResult)
                             .then(function (batchResult) {
+                                console.log("Saved batch result: " + batchResult._id);
                                 /** ATTENTION **/
                                 /* This is the final return for Charybdis */
                                 return {

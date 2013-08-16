@@ -39,11 +39,11 @@ module.exports = function (host, port) {
                             return JSON.parse(body.toString());
                         });
                 } else {
-                    console.error("HTTP Error (" + requestObject.path + "): ", response.status);
+                    console.error("HTTP " + requestObject.method + " Error (" + requestObject.path + "): ", response.status);
                     if(response.body) {
                         return response.body.read()
                             .then(function (body) {
-                                console.error("Error Body: ", body);
+                                console.error("Error Body: ", body.toString());
                                 throw new Error("[scylla-json] Error: " + response.status);
                             });
                     } else {
