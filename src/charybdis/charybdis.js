@@ -335,9 +335,6 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
 
         return scylla.getCompare(compareId)
             .then(function (abCompare) {
-                var compareResult = {
-                    abCompare: abCompare
-                }
                 return compareTwoUrls(abCompare.urlA, abCompare.urlB, true)
                     .then(function (compareResults) {
                         //console.log("Compare Results:\n", compareResults);
@@ -352,7 +349,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             })
     };
 
-    var validateInputs = function (host, port, id){
+    var validateInputs = function validateInputs(host, port, id){
         if (!host) {
             console.error("Host is required");
             throw "Host is required";
@@ -365,9 +362,8 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         console.log("Charybdis setup against server: http://" + host + ":" + port);
 
         if (!id || typeof id !== "string" && id.length == 0) {
-            var d = Q.defer();
-            d.reject(new Error("ID is required"));
-            return d.promise;
+            console.error("ID is required");
+            throw "ID is required";
         }
 
     };
