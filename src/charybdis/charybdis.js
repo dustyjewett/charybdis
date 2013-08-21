@@ -371,6 +371,12 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
     var executeOnReport = function (host, port, reportId) {
         validateInputs(host, port, reportId);
         console.log("Executing with Report: " + reportId);
+        return processReport(reportId);
+    };
+
+    var captureReportSnapshot = function (host, port, reportId) {
+        validateInputs(host, port, reportId);
+        console.log("Executing with Report: " + reportId);
         return scylla.getReport(reportId)
             .then(function (report) {
                 return renderAndSaveNewReportResult(report);
@@ -454,10 +460,11 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
     };
 
     return {
-        executeOnReport : executeOnReport,
-        executeOnBatch  : executeOnBatch,
-        compareTwoUrls  : compareTwoUrls,
-        executeABCompare: executeABCompare
+        executeOnReport       : executeOnReport,
+        captureReportSnapshot : captureReportSnapshot,
+        executeOnBatch        : executeOnBatch,
+        compareTwoUrls        : compareTwoUrls,
+        executeABCompare      : executeABCompare
     };
 }
 
