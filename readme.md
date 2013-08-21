@@ -21,3 +21,10 @@ The icon is appropriated from:
 http://danbooru.donmai.us/posts/1136450
 
 Without permission... :-(
+
+
+License
+-------
+See [LICENSE][]
+
+[LICENSE]: LICENSE.md
