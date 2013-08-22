@@ -15,18 +15,22 @@ module.exports = (function(){
     var parseCompareVerboseMAEError = function parseCompareVerboseMAEOutput(lines){
         var errorInfo = {
             messages:[]
-        }
+        };
         while(lines.length){
             var line = lines.shift();
             if(line == "") continue;
-            if(line.indexOf("compare.") == 0){
+            if(line.indexOf("compare") == 0){
                 errorInfo.messages.push(line.split(":")[1].split("`")[0].trim())
             } else if(!errorInfo.hasOwnProperty("fileA")) {
                 errorInfo.fileA = parseIdentifySingleLineOutput(line)
             } else if(!errorInfo.hasOwnProperty("fileB")) {
                 errorInfo.fileB = parseIdentifySingleLineOutput(line)
+            } else {
+                errorInfo.messages.push(line);
             }
         }
+        //console.log("ERRORS:");
+        //console.log(require('util').inspect(errorInfo));
         return errorInfo;
     };
 
