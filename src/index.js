@@ -13,13 +13,14 @@ module.exports = function () {
 
 
     return {
-        webPageToImage  : webPageToImage,
-        imagemagick     : imagemagick,
-        pngIO           : pngIO,
-        executeOnReport : charybdis.executeOnReport,
-        executeOnBatch  : charybdis.executeOnBatch,
-        compareTwoUrls  : charybdis.compareTwoUrls,
-        executeABCompare: charybdis.executeABCompare
+        webPageToImage       : webPageToImage,
+        imagemagick          : imagemagick,
+        pngIO                : pngIO,
+        executeOnReport      : charybdis.executeOnReport,
+        captureReportSnapshot: charybdis.captureReportSnapshot,
+        executeOnBatch       : charybdis.executeOnBatch,
+        compareTwoUrls       : charybdis.compareTwoUrls,
+        executeABCompare     : charybdis.executeABCompare
     };
 }
 
