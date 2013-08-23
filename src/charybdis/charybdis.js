@@ -1,5 +1,6 @@
 module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
     var Q = require('q');
+    var Qe = require('../qExtension/qExtension');
     var fsQ = require("q-io/fs");
     var temp = require("temp");
 
@@ -119,7 +120,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                     })
             })
             .fin(function (passthrough) {
-                return Q.allSettled([
+                return Q.all([
                         fsQ.remove(masterFile),
                         fsQ.remove(newFile),
                         fsQ.remove(diffFile)
@@ -179,7 +180,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                                 image            : diff.image
                             })
                         }, function (error) {
-                            console.log("Report Result Diff Exception: ", error.messages);
+                            console.log("Report Result Diff Exception: ", require('util').inspect(error));
                             return scylla.newResultDiff({
                                 report           : currentReport,
                                 reportResultA    : currentReport.masterResult,
@@ -410,33 +411,32 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                     end                  : "",
                     reportResultSummaries: {}
                 };
-                var promises = [];
-                while (list.length) {
-                    var nextId = list.shift();
-                    console.log("Processing Report: " + nextId);
 
-                    promises.push(
-                        processReport(nextId)
-                            .then(function (result) {
-                                console.log("Setting Result Summary");
-                                //console.log(util.inspect(result));
-                                if (result.resultDiff.distortion == 0)
-                                    batchResult.pass++;
-                                else if (result.resultDiff.distortion == -1)
-                                    batchResult.exception++;
-                                else
-                                    batchResult.fail++;
-                                batchResult.reportResultSummaries[result.result._id] = {
-                                    resultDiffId: result.resultDiff._id,
-                                    distortion  : result.resultDiff.distortion,
-                                    error       : (result.resultDiff.distortion == -1) ? result.resultDiff.error : undefined,
-                                    name        : result.report.name
-                                };
-                            })
-                    );
-
-                }
-                return Q.all(promises)
+                var captureQueuePromise =
+                    Qe.eachItemIn(list)
+                        .aggregateThisPromise(function(value){
+                            console.log("Processing Report: " + value);
+                            return processReport(value)
+                                    .then(function (result) {
+                                        console.log("Setting Result Summary");
+                                        //console.log(util.inspect(result));
+                                        if (result.resultDiff.distortion == 0)
+                                            batchResult.pass++;
+                                        else if (result.resultDiff.distortion == -1)
+                                            batchResult.exception++;
+                                        else
+                                            batchResult.fail++;
+                                        var reportSummary = {
+                                            resultDiffId: result.resultDiff._id,
+                                            distortion  : result.resultDiff.distortion,
+                                            error       : (result.resultDiff.distortion == -1) ? result.resultDiff.error : undefined,
+                                            name        : result.report.name
+                                        };
+                                        batchResult.reportResultSummaries[result.result._id] = reportSummary;
+                                        return reportSummary;
+                                    })
+                        });
+                return Q.when(captureQueuePromise)
                     .then(function () {
                         batchResult.end = new Date().toISOString();
                         console.log("Batch Processing finished at: " + batchResult.end);

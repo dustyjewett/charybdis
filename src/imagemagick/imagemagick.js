@@ -29,8 +29,8 @@ module.exports = (function(){
                 errorInfo.messages.push(line);
             }
         }
-        //console.log("ERRORS:");
-        //console.log(require('util').inspect(errorInfo));
+        console.log("ERRORS:");
+        console.log(require('util').inspect(errorInfo));
         return errorInfo;
     };
 
@@ -100,7 +100,7 @@ module.exports = (function(){
                    '"' + fileA + '"' + ((pixelsToCompare) ? "[" + pixelsToCompare + "+0+0]" : ""),
                    '"' + fileB + '"' + ((pixelsToCompare) ? "[" + pixelsToCompare + "+0+0]" : ""),
                    '"' + outFile + '"'].join(" ");
-        //console.log(cmd);
+        console.log(cmd);
         exec(cmd, function(error, stdout, stderr){
             if(error){
                 //console.log(stderr);
@@ -115,6 +115,7 @@ module.exports = (function(){
             .fail(function(failedOutput){
                 if(failedOutput.messages[0] == 'image widths or heights differ'){
                     if(!pixelsToCompare) {
+                        console.log("Image Size mismatch, re-running on subset");
                         var sizeA = failedOutput.fileA.properties.ResolutionInPixels.split("x");
                         var sizeB = failedOutput.fileB.properties.ResolutionInPixels.split("x");
                         var size = Math.min(parseInt(sizeA[0], 10), parseInt(sizeB[0], 10)) + "x" +
@@ -128,6 +129,8 @@ module.exports = (function(){
                                 info.warning = "Images not the same size: " + sizeA.join("x") + " vs " + sizeB.join("x");
                                 return info;
                             });
+                    } else {
+                        console.log("Image Size still mismatched, not sure what went wrong");
                     }
                 }
                 return failedOutput;

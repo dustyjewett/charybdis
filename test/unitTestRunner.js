@@ -11,6 +11,7 @@ var mocha = new Mocha({
     timeout: 500
 });
 
+//var testDir = './test/unit/qExtension/*Test.js';
 var testDir = './test/unit/**/*Test.js';
 glob(testDir, function (err, files) {
     if (err) {
