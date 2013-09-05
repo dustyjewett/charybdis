@@ -7,15 +7,20 @@ var path = require('path');
  *
  * @param urlToPage
  * @param outputFile
+ * @param width viewport width
+ * @param height viewport height
  * @return {*}
  */
-module.exports = function webPageToImage(urlToPage, outputFile) {
+module.exports = function webPageToImage(urlToPage, outputFile, width, height) {
     var deferred = Q.defer();
-
+    width = width || 600;
+    height = height || 600;
     var childArgs = [
         path.join(__dirname, 'renderWebPage.js'),
         urlToPage,
-        outputFile
+        outputFile,
+        width,
+        height
     ];
     //With all of these console statements, you'd think I have to debug this a lot...
 
@@ -24,7 +29,7 @@ module.exports = function webPageToImage(urlToPage, outputFile) {
         //console.error("Stdout", stdout);
         //console.error("Stderr", stderr);
         if(error) {
-            deferred.reject({message:stderr});
+            deferred.reject({message:stderr, console:stdout});
         } else {
             //console.log("Rendered Url: " + urlToPage);
             //console.log("To File: " + outputFile);

@@ -11,21 +11,15 @@ var page = require('webpage').create(),
 var fs = require("fs");
 
 if (system.args.length < 3 || system.args.length > 5) {
-    console.log('Usage: rener-web-page.js URL filename [paperwidth*paperheight|paperformat] [zoom]');
-    console.log('  paper (pdf output) examples: "5in*7.5in", "10cm*20cm", "A4", "Letter"');
+    console.log('Usage: render-web-page.js URL filename width height');
+    console.log('  screen sizes examples: iphone 4: "640 960", nexus 4: "1280 768"');
     phantom.exit(1);
 } else {
     address = system.args[1];
     output = system.args[2];
-    page.viewportSize = { width: 600, height: 600 };
-    if (system.args.length > 3 && system.args[2].substr(-4) === ".pdf") {
-        size = system.args[3].split('*');
-        page.paperSize = size.length === 2 ? { width: size[0], height: size[1], margin: '0px' }
-            : { format: system.args[3], orientation: 'portrait', margin: '1cm' };
-    }
-    if (system.args.length > 4) {
-        page.zoomFactor = system.args[4];
-    }
+    width = system.args[3] || 600;
+    height = system.args[4] || 600;
+    page.viewportSize = { width: width, height: height };
     if(address.indexOf("?") == -1) {
         address += "?phantomjs";
     }
