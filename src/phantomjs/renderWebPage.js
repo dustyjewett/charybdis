@@ -21,7 +21,7 @@ if (system.args.length < 3 || system.args.length > 5) {
     if (system.args.length > 3 && system.args[2].substr(-4) === ".pdf") {
         size = system.args[3].split('*');
         page.paperSize = size.length === 2 ? { width: size[0], height: size[1], margin: '0px' }
-                                           : { format: system.args[3], orientation: 'portrait', margin: '1cm' };
+            : { format: system.args[3], orientation: 'portrait', margin: '1cm' };
     }
     if (system.args.length > 4) {
         page.zoomFactor = system.args[4];
@@ -31,7 +31,7 @@ if (system.args.length < 3 || system.args.length > 5) {
     }
     system.stdout.write("Opening Page: " + address + "\n");
     page.open(address, function (status) {
-            //system.stdout.write(status);
+        //system.stdout.write(status);
         //fs.write("/dev/stdout", status, "w");
         if (status !== 'success') {
             //system.stdout.write(address + ":" + status);
@@ -46,6 +46,15 @@ if (system.args.length < 3 || system.args.length > 5) {
             }, 200);
         }
     });
+    page.onAlert = function(str) {
+        system.stdout.writeLine(str);
+    };
+    page.onError = function (msg, trace) {
+        system.stdout.writeLine("PAGE ERROR:" + msg);
+        trace.forEach(function(item) {
+            system.stdout.writeLine('  ', item.file, ':', item.line);
+        })
+    };
     page.onResourceReceived = function(resource) {
         //system.stdout.write("Received:  " + resource.url + " : " + resource.status + "\n");
         if (resource.url == address && parseInt(resource.status) >= 400 ) {
