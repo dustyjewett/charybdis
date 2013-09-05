@@ -100,7 +100,7 @@ module.exports = (function(){
                    '"' + fileA + '"' + ((pixelsToCompare) ? "[" + pixelsToCompare + "+0+0]" : ""),
                    '"' + fileB + '"' + ((pixelsToCompare) ? "[" + pixelsToCompare + "+0+0]" : ""),
                    '"' + outFile + '"'].join(" ");
-        console.log(cmd);
+        //console.log(cmd);
         exec(cmd, function(error, stdout, stderr){
             if(error){
                 //console.log(stderr);
