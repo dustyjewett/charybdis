@@ -8,131 +8,10 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
 
     var scylla;
 
-    var tmpOpts = {
-        reportThumb:{
-            prefix: 'charybdis-rt-',
-            suffix: '.png'
-        },
-        diffmaster:{
-            prefix: 'charybdis-dm-',
-            suffix: '.png'
-        },
-        diffnew:{
-            prefix: 'charybdis-dn-',
-            suffix: '.png'
-        },
-        diffdiff:{
-            prefix: 'charybdis-dd-',
-            suffix: '.png'
-        },
-        reportRender:{
-            prefix: 'charybdis-rr-',
-            suffix: '.png'
-        },
-        thumbString:{
-            prefix: 'charybdis-ts-',
-            suffix: '.png'
-        },
-        compareA:{
-            prefix: 'charybdis-ca-',
-            suffix: '.png'
-        },
-        compareB:{
-            prefix: 'charybdis-cb-',
-            suffix: '.png'
-        },
-        compareC:{
-            prefix: 'charybdis-cc-',
-            suffix: '.png'
-        }
-    }
-
-    var saveNewReportResult = function saveNewReportResult(report, imageFile) {
-        //console.log("Saving result for file: ", imageFile);
-        var fullImage;
-        var thumbFile = temp.path(tmpOpts.reportThumb);
-        var thumb;
-        return pngIO.readPng(imageFile)
-            .then(function (imageString) {
-                fullImage = imageString;
-                return imagemagick.makeThumbnail(imageFile, thumbFile, 120)
-            })
-            .then(function () {
-                return pngIO.readPng(thumbFile);
-            })
-            .then(function (thumbString) {
-                thumb = thumbString;
-            })
-            .then(function () {
-                var result = {
-                    report   : report,
-                    timestamp: new Date().toISOString(),
-                    "result" : fullImage,
-                    thumb    : thumb
-                };
-                //console.log("Saving Report Result: ", result);
-                return scylla.newReportResult(report._id, result);
-
-            }, function (error) {
-                console.log("During Report: " + report + " Unable to open file: ", error);
-                throw new Error(error);
-            })
-            .then(function (passthrough) {
-                return fsQ.remove(thumbFile)
-                    .then(function () {
-                        return passthrough
-                    });
-            })
-    };
-
-
-    /**
-     * Compares two base64 images.
-     * @param imageA
-     * @param imageB
-     * @return {Promise} for
-     *      Success: {image:String (Base64), distortion:Number}
-     *      Failure: {message:}
-     */
-    var diffTwoBase64Images = function diffTwoBase64Images(imageA, imageB) {
-
-        var masterFile = temp.path(tmpOpts.diffmaster);
-        var newFile = temp.path(tmpOpts.diffnew);
-        var diffFile = temp.path(tmpOpts.diffdiff);
-
-        return Q.all([
-                pngIO.writePng(masterFile, imageA),
-                pngIO.writePng(newFile, imageB)
-            ])
-            .then(function () {
-                return imagemagick.compare(masterFile, newFile, diffFile)
-            })
-            .then(function (info) {
-                var distortion = info.distortion;
-                //parseFloat(info.comparison.properties["Channel distortion"].all.split(" ")[0])
-                return pngIO.readPng(diffFile)
-                    .then(function (imageString) {
-                        return {
-                            image     : imageString,
-                            distortion: distortion
-                        };
-
-                    })
-            })
-            .fin(function (passthrough) {
-                return Q.all([
-                        fsQ.remove(masterFile),
-                        fsQ.remove(newFile),
-                        fsQ.remove(diffFile)
-                    ])
-                    .then(function () {
-                        return passthrough
-                    })
-            });
-    };
-
     var renderAndSaveNewReportResult = function renderAndSaveNewReportResult(report) {
         console.log("Retrieved: " + report._id);
+        var saveNewReportResult = require('./saveNewReportResult')(Q, fsQ, temp, pngIO, scylla);
+        var tmpOpts = require('./tempFileNames');
         var webPageRenderPath = temp.path(tmpOpts.reportRender);
 
         return webPageToImage(report.url, webPageRenderPath, report.width, report.height)
@@ -157,6 +36,8 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
     };
 
     var processReport = function (reportId) {
+        var saveNewReportResult = require('./saveNewReportResult')(Q, fsQ, temp, pngIO, scylla);
+        var diffTwoBase64Images = require('./diffTwoBase64Images')(Q, fsQ, temp, pngIO);
         var currentReport;
         var currentResult;
         return scylla.getReport(reportId)
@@ -180,7 +61,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                                 image            : diff.image
                             })
                         }, function (error) {
-                            console.log("Report Result Diff Exception: ", require('util').inspect(error));
+                            console.log("Report Result Diff Exception: ", util.inspect(error));
                             return scylla.newResultDiff({
                                 report           : currentReport,
                                 reportResultA    : currentReport.masterResult,
@@ -228,78 +109,6 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
 
     };
 
-    var getThumbnailString = function (filename) {
-        var fileThumb = temp.path(tmpOpts.thumbString);
-        return imagemagick.makeThumbnail(filename, fileThumb, 120)
-            .then(function () {
-                return pngIO.readPng(fileThumb)
-            })
-            .then(function(fileString){
-                return fsQ.remove(fileThumb) // Cleanup
-                .then(function(){
-                   return fileString;
-                })
-            });
-    };
-
-    var diffTwoUrls = function (urlA, urlB, returnImages, width, height) {
-        var fileA = temp.path(tmpOpts.compareA);
-        var fileB = temp.path(tmpOpts.compareB);
-        var diffFile = temp.path(tmpOpts.compareC);
-        return Q.all([
-                webPageToImage(urlA, fileA, width, height),
-                webPageToImage(urlB, fileB, width, height)
-            ])
-            .then(function () {
-                return imagemagick.compare(fileA, fileB, diffFile)
-                    .then(function (info) {
-                        var result = {};
-                        //console.log(info);
-                        //console.log("Pixel Diff:" + info.comparison.properties["Channel distortion"].all.split(" ")[0]);
-                        //console.log("Total Diff:" + info.distortion);
-                        return getThumbnailString(fileA)
-                            .then(function (thumbString) {
-                                result.thumbA = thumbString;
-                                return getThumbnailString(fileB)
-                                    .then(function (thumbString) {
-                                        result.thumbB = thumbString;
-                                    })
-                            })
-                            .then(function () {
-                                return pngIO.readPng(diffFile)
-                            })
-                            .then(function (imageString) {
-                                result.image = imageString;
-                                result.distortion = info.distortion;
-                                result.warning = info.warning;
-                                result.timestamp = new Date().toISOString();
-                                if (returnImages) {
-                                    return Q.all([
-                                            pngIO.readPng(fileA),
-                                            pngIO.readPng(fileB)
-                                        ]).spread(function (imgA, imgB) {
-                                            result.resultA = imgA;
-                                            result.resultB = imgB;
-                                            return result;
-                                        });
-                                }
-
-                                return result;
-                            })
-                    })
-            })
-            .then(function(passthrough){
-                return Q.allSettled([
-                    fsQ.remove(fileA),
-                    fsQ.remove(fileB),
-                    fsQ.remove(diffFile)
-                ])
-                .then(function () {
-                    return passthrough;
-                });
-            })
-
-    }
 
     var compareTwoUrls = function (urlA, urlB, returnImages, width, height) {
         if (!urlA) {
@@ -310,6 +119,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             console.fatal("Url B is required");
             throw "Url B is required";
         }
+        var diffTwoUrls = require('./diffTwoUrls')(Q, fsQ, temp, pngIO, imagemagick, webPageToImage);
         console.log("Comparing Urls: " + urlA + " / " + urlB);
         return diffTwoUrls(urlA, urlB, returnImages, width, height)
     };
@@ -378,6 +188,8 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
     var captureReportSnapshot = function (host, port, reportId) {
         validateInputs(host, port, reportId);
         console.log("Executing with Report: " + reportId);
+        var saveNewReportResult = require('./saveNewReportResult')(Q, fsQ, temp, pngIO, scylla);
+
         return scylla.getReport(reportId)
             .then(function (report) {
                 return renderAndSaveNewReportResult(report);
