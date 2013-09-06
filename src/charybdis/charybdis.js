@@ -135,7 +135,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         console.log("Retrieved: " + report._id);
         var webPageRenderPath = temp.path(tmpOpts.reportRender);
 
-        return webPageToImage(report.url, webPageRenderPath)
+        return webPageToImage(report.url, webPageRenderPath, report.width, report.height)
             .then(function (message) {
                 return saveNewReportResult(report, webPageRenderPath)
                     .then(function (passthrough) {
@@ -242,13 +242,13 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             });
     };
 
-    var diffTwoUrls = function (urlA, urlB, returnImages) {
+    var diffTwoUrls = function (urlA, urlB, returnImages, width, height) {
         var fileA = temp.path(tmpOpts.compareA);
         var fileB = temp.path(tmpOpts.compareB);
         var diffFile = temp.path(tmpOpts.compareC);
         return Q.all([
-                webPageToImage(urlA, fileA),
-                webPageToImage(urlB, fileB)
+                webPageToImage(urlA, fileA, width, height),
+                webPageToImage(urlB, fileB, width, height)
             ])
             .then(function () {
                 return imagemagick.compare(fileA, fileB, diffFile)
@@ -301,7 +301,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
 
     }
 
-    var compareTwoUrls = function (urlA, urlB, returnImages) {
+    var compareTwoUrls = function (urlA, urlB, returnImages, width, height) {
         if (!urlA) {
             console.fatal("Url A is required");
             throw "Url A is required";
@@ -311,7 +311,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             throw "Url B is required";
         }
         console.log("Comparing Urls: " + urlA + " / " + urlB);
-        return diffTwoUrls(urlA, urlB, returnImages)
+        return diffTwoUrls(urlA, urlB, returnImages, width, height)
     };
 
     var executeABCompare = function (host, port, compareId) {
@@ -336,7 +336,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
 
         return scylla.getCompare(compareId)
             .then(function (abCompare) {
-                return compareTwoUrls(abCompare.urlA, abCompare.urlB, true)
+                return compareTwoUrls(abCompare.urlA, abCompare.urlB, true, abCompare.width, abCompare.height)
                     .then(function (compareResults) {
                         //console.log("Compare Results:\n", compareResults);
                         return scylla.newCompareResult(compareId, compareResults)
