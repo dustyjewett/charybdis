@@ -12,6 +12,7 @@ var path = require('path');
  * @return {*}
  */
 module.exports = function webPageToImage(urlToPage, outputFile, width, height) {
+    'use strict';
     var deferred = Q.defer();
     width = width || 600;
     height = height || 600;

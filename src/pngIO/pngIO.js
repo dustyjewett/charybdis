@@ -1,4 +1,6 @@
 module.exports = (function(){
+    'use strict';
+
     var Q = require('q');
     var fsQ = require("q-io/fs");
 
@@ -26,5 +28,5 @@ module.exports = (function(){
     return {
         readPng:readPng,
         writePng:writePng
-    }
+    };
 })();

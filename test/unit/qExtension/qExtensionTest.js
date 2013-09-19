@@ -2,6 +2,7 @@ var expect = require('chai').expect;
 
 
 describe('qExtension', function(){
+    'use strict';
 
     var Q = require('q');
 
@@ -29,14 +30,14 @@ describe('qExtension', function(){
                 .eachItemIn([])
                 .aggregateThisPromise(function(val){
                     return Q.delay(50)
-                        .then(function(){return 'Item: ' + val});
+                        .then(function(){return 'Item: ' + val;});
             });
             aggregatedPromise.then(function(values){
                 expect(values).to.exist;
                 expect(values).to.be.an('array');
                 expect(values.length).to.equal(0);
                 done();
-            })
+            });
         });
 
 
@@ -45,7 +46,7 @@ describe('qExtension', function(){
                 .eachItemIn([1])
                 .aggregateThisPromise(function(val){
                     console.log("generating result for: ", val);
-                    d = Q.defer();
+                    var d = Q.defer();
                     d.resolve("Item: " + val);
                     return d.promise;
                 });
@@ -53,7 +54,7 @@ describe('qExtension', function(){
                 expect(values.length).to.equal(1);
                 done();
 
-            })
+            });
         });
 
         it('handles ten items fine', function(done){
@@ -64,14 +65,14 @@ describe('qExtension', function(){
                     return Q.delay(20)
                         .then(function(){
                             return "Item: " + val;
-                        })
+                        });
                 });
             aggregatedPromise.then(function(values){
                 expect(values.length).to.equal(10);
                 done();
 
-            })
-        })
+            });
+        });
 
 
 

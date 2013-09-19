@@ -1,4 +1,5 @@
 module.exports = function (host, port) {
+    'use strict';
 
     var http = require("q-io/http");
 
@@ -10,7 +11,7 @@ module.exports = function (host, port) {
             path   : path,
             body   : (body) ? [JSON.stringify(body)] : undefined
         };
-        if(method == "GET" || method == "DEL"){
+        if(method === "GET" || method === "DEL"){
             req.headers = {};//{"Content-type": "application/json"};
         } else {
             req.headers = {"Content-type": "application/json"};
@@ -21,17 +22,17 @@ module.exports = function (host, port) {
 
     var getRequest = function (path) {
         return newRequest("GET", path);
-    }
+    };
 
     var postRequest = function (path, body) {
         return newRequest("POST", path, body);
-    }
+    };
 
     var getJsonObject = function (requestObject) {
         //console.log("Sending Request: ", requestObject);
         return http.request(requestObject)
             .then(function (response) {
-                if (response && response.status == 200) {
+                if (response && response.status === 200) {
                     //console.log("Response Received");
                     return response.body.read()
                         .then(function (body) {
@@ -50,6 +51,9 @@ module.exports = function (host, port) {
                         throw new Error(response);
                     }
                 }
+            }, function(err){
+                console.error("[scylla-json]",err);
+                throw new Error(err);
             });
 
     };

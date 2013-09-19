@@ -1,13 +1,12 @@
 
-var sinon = require('sinon');
 var expect = require('chai').expect;
-
-var Q = require('q');
 
 var webPageToImage = require('../../../src/phantomjs/webPageToImage');
 var http = require("http");
 
 describe('webPageToImage', function(){
+    'use strict';
+
     describe('api', function(){
 
         it('exports a function', function(){
@@ -29,7 +28,7 @@ describe('webPageToImage', function(){
                     response.end();
                 });
                 serverPort = Math.round((Math.random() * 50000) + 10000);
-                server.listen(serverPort)
+                server.listen(serverPort);
             });
             after(function(){
                 server.close();
@@ -38,11 +37,11 @@ describe('webPageToImage', function(){
                 this.timeout(2000);
                 var tmp = "/tmp/testHappyPath.png";
                 webPageToImage("http://localhost:" + serverPort + "/", tmp)
-                    .then(function(stdout){
+                    .then(function(/*stdout*/){
                         done();
                     }, function(err){
-                        throw new Error();
-                    })
+                        throw new Error(err);
+                    });
 
             });
         });
@@ -60,7 +59,7 @@ describe('webPageToImage', function(){
                     }
                 });
                 serverPort = Math.round((Math.random() * 50000) + 10000);
-                server.listen(serverPort)
+                server.listen(serverPort);
             });
             after(function(){
                 server.close();
@@ -69,14 +68,14 @@ describe('webPageToImage', function(){
                 this.timeout(2000);
                 var tmp = "/tmp/testHappyPath.png";
                 webPageToImage("http://localhost:" + serverPort + "/", tmp)
-                    .then(function(stdout){
+                    .then(function(/*stdout*/){
                         done();
                     }, function(err){
-                        throw new Error();
-                    })
+                        throw new Error(err);
+                    });
 
             });
-        })
+        });
 
     });
 
@@ -90,7 +89,7 @@ describe('webPageToImage', function(){
                     response.end();
                 });
                 serverPort = Math.round((Math.random() * 50000) + 10000);
-                server.listen(serverPort)
+                server.listen(serverPort);
             });
             after(function(){
                 server.close();
@@ -98,12 +97,13 @@ describe('webPageToImage', function(){
             it('handles 404 errors', function(done){
                 var tmp = "/tmp/testHappyPath.png";
                 return webPageToImage("http://localhost:" + serverPort + "/", tmp)
-                    .then(function(stdout){
+                    .then(function(/*stdout*/){
                         throw new Error("Should not have resolved the promise");
                     }, function(err){
                         expect(err).to.include.keys("message");
                         expect(err.message).to.contain("404");
-                    })
+                        done();
+                    });
 
             });
         });
@@ -116,7 +116,7 @@ describe('webPageToImage', function(){
                     response.end();
                 });
                 serverPort = Math.round((Math.random() * 50000) + 10000);
-                server.listen(serverPort)
+                server.listen(serverPort);
             });
             after(function(){
                 server.close();
@@ -125,12 +125,13 @@ describe('webPageToImage', function(){
                 this.timeout(2000);
                 var tmp = "/tmp/testHappyPath.png";
                 return webPageToImage("http://localhost:" + serverPort + "/", tmp)
-                    .then(function(stdout){
+                    .then(function(/*stdout*/){
                         throw new Error("Should not have resolved the promise");
                     }, function(err){
                         expect(err).to.include.keys("message");
                         expect(err.message).to.contain("500");
-                    })
+                        done();
+                    });
 
             });
         });
@@ -143,12 +144,13 @@ describe('webPageToImage', function(){
                 this.timeout(2000);
                 var tmp = "/tmp/testHappyPath.png";
                 return webPageToImage("http://localhost:" + serverPort + "/", tmp)
-                    .then(function(stdout){
+                    .then(function(/*stdout*/){
                         throw new Error("Should not have resolved the promise");
                     }, function(err){
                         expect(err).to.include.keys("message");
                         expect(err.message).to.contain("Unable to load");
-                    })
+                        done();
+                    });
 
             });
         });

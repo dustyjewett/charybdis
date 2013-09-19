@@ -2,6 +2,7 @@ var expect = require('chai').expect;
 
 
 describe('pngIO', function(){
+    'use strict';
 
     describe('api', function(){
 

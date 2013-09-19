@@ -2,6 +2,7 @@ var expect = require('chai').expect;
 
 
 describe('charybdis package', function(){
+    'use strict';
 
     describe('api', function(){
 
@@ -27,5 +28,5 @@ describe('charybdis package', function(){
         });
 
 
-    })
+    });
 });

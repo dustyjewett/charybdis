@@ -20,6 +20,7 @@ cli.parse({
 var charybdis = require('./index');
 
 cli.main(function (args, options) {
+    'use strict';
     logger.info(args, options);
     charybdis().executeOnBatch(options.host, options.port, options.batch)
         .then(function(result){

@@ -11,9 +11,9 @@ var logger = new winston.Logger({
 logger.cli();
 
 cli.parse({
-    compare: ['c', 'Run a specific compare', 'string', ''],
+    report: ['r', 'Run a specific report', 'string', ''],
     host : ['h', 'Specify Scylla Hostname', 'string', 'localhost'],
-    port : ['p', 'Specify Scylla Port', 'string', '3001']
+    port : ['p', 'Specify Scylla Port', 'string', '3000']
 });
 
 
@@ -21,8 +21,9 @@ var charybdis = require('./index');
 
 cli.main(function (args, options) {
     'use strict';
+
     logger.info(args, options);
-    charybdis().executeABCompare(options.host, options.port, options.compare)
+    charybdis().executeOnReport(options.host, options.port, options.report)
         .then(function(result){
             logger.info("Charybdis Finished", result);
         });

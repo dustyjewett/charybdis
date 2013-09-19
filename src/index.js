@@ -1,4 +1,5 @@
 module.exports = function () {
+    'use strict';
     var webPageToImage  = require("./phantomjs/webPageToImage");
     var imagemagick     = require('./imagemagick/imagemagick');
     var pngIO           = require('./pngIO/pngIO');
@@ -22,7 +23,7 @@ module.exports = function () {
         compareTwoUrls       : charybdis.compareTwoUrls,
         executeABCompare     : charybdis.executeABCompare
     };
-}
+};
 
 
 

@@ -1,6 +1,4 @@
-var Mocha = require('mocha'),
-    path = require('path'),
-    fs = require('fs');
+var Mocha = require('mocha');
 var mochaAsPromised = require("mocha-as-promised");
     mochaAsPromised(Mocha);
 var glob = require("glob");
@@ -14,6 +12,7 @@ var mocha = new Mocha({
 //var testDir = './test/unit/qExtension/*Test.js';
 var testDir = './test/unit/**/*Test.js';
 glob(testDir, function (err, files) {
+    'use strict';
     if (err) {
         console.log(err);
         return;
@@ -27,5 +26,6 @@ glob(testDir, function (err, files) {
         console.log('finished');
         process.exit();
     });
+    console.log(runner);
 
 });

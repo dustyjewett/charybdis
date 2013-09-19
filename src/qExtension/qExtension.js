@@ -1,5 +1,6 @@
 //IIFE
 module.exports = (function(){
+    'use strict';
     var Q = require('q');
 
     var sequentiallyDeQueue = function(values, func){
@@ -27,7 +28,7 @@ module.exports = (function(){
         root.resolve();
         return head.then(function(){
             return results;
-        })
+        });
 
     };
 
@@ -36,11 +37,11 @@ module.exports = (function(){
             aggregateThisPromise:function aggregateThisPromise(fn){
                 return sequentiallyDeQueue(values, fn);
             }
-        }
+        };
     };
 
     return {
         eachItemIn:eachItemIn
-    }
+    };
 })();
 

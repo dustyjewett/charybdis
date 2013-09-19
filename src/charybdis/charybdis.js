@@ -1,4 +1,5 @@
 module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
+    'use strict';
     var Q = require('q');
     var Qe = require('../qExtension/qExtension');
     var fsQ = require("q-io/fs");
@@ -45,7 +46,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             prefix: 'charybdis-cc-',
             suffix: '.png'
         }
-    }
+    };
 
     var saveNewReportResult = function saveNewReportResult(report, imageFile) {
         //console.log("Saving result for file: ", imageFile);
@@ -55,7 +56,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         return pngIO.readPng(imageFile)
             .then(function (imageString) {
                 fullImage = imageString;
-                return imagemagick.makeThumbnail(imageFile, thumbFile, 120)
+                return imagemagick.makeThumbnail(imageFile, thumbFile, 120);
             })
             .then(function () {
                 return pngIO.readPng(thumbFile);
@@ -80,9 +81,9 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             .then(function (passthrough) {
                 return fsQ.remove(thumbFile)
                     .then(function () {
-                        return passthrough
+                        return passthrough;
                     });
-            })
+            });
     };
 
 
@@ -105,7 +106,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                 pngIO.writePng(newFile, imageB)
             ])
             .then(function () {
-                return imagemagick.compare(masterFile, newFile, diffFile)
+                return imagemagick.compare(masterFile, newFile, diffFile);
             })
             .then(function (info) {
                 var distortion = info.distortion;
@@ -117,7 +118,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                             distortion: distortion
                         };
 
-                    })
+                    });
             })
             .fin(function (passthrough) {
                 return Q.all([
@@ -126,8 +127,8 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                         fsQ.remove(diffFile)
                     ])
                     .then(function () {
-                        return passthrough
-                    })
+                        return passthrough;
+                    });
             });
     };
 
@@ -137,11 +138,12 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
 
         return webPageToImage(report.url, webPageRenderPath, report.width, report.height)
             .then(function (message) {
+                report.message = message;
                 return saveNewReportResult(report, webPageRenderPath)
                     .then(function (passthrough) {
                         return fsQ.remove(webPageRenderPath)
                             .then(function () {
-                                return passthrough
+                                return passthrough;
                             });
                     });
             }, function(error){
@@ -178,7 +180,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                                 reportResultBName: currentResult.timestamp,
                                 distortion       : diff.distortion,
                                 image            : diff.image
-                            })
+                            });
                         }, function (error) {
                             console.log("Report Result Diff Exception: ", require('util').inspect(error));
                             return scylla.newResultDiff({
@@ -190,7 +192,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                                 distortion       : -1,
                                 error            : error,
                                 image            : undefined
-                            })
+                            });
                         });
                 }
                 console.log("No Master Result defined for: ", currentReport.name);
@@ -203,14 +205,14 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                     distortion       : -1,
                     error            : {messages: ["No Master Result defined."]},
                     image            : undefined
-                })
+                });
             })
             .then(function (diff) {
                 return {
                     report    : currentReport,
                     result    : currentResult,
                     resultDiff: diff
-                }
+                };
             }, function(error){
                 console.error("Error Saving Result:", util.inspect(error));
                 console.error(error.stack);
@@ -223,7 +225,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                             messages:[error.message]
                         }
                     }
-                }
+                };
             });
 
     };
@@ -232,13 +234,13 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         var fileThumb = temp.path(tmpOpts.thumbString);
         return imagemagick.makeThumbnail(filename, fileThumb, 120)
             .then(function () {
-                return pngIO.readPng(fileThumb)
+                return pngIO.readPng(fileThumb);
             })
             .then(function(fileString){
                 return fsQ.remove(fileThumb) // Cleanup
                 .then(function(){
                    return fileString;
-                })
+                });
             });
     };
 
@@ -263,10 +265,10 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                                 return getThumbnailString(fileB)
                                     .then(function (thumbString) {
                                         result.thumbB = thumbString;
-                                    })
+                                    });
                             })
                             .then(function () {
-                                return pngIO.readPng(diffFile)
+                                return pngIO.readPng(diffFile);
                             })
                             .then(function (imageString) {
                                 result.image = imageString;
@@ -285,8 +287,8 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                                 }
 
                                 return result;
-                            })
-                    })
+                            });
+                    });
             })
             .then(function(passthrough){
                 return Q.allSettled([
@@ -297,9 +299,9 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                 .then(function () {
                     return passthrough;
                 });
-            })
+            });
 
-    }
+    };
 
     var compareTwoUrls = function (urlA, urlB, returnImages, width, height) {
         if (!urlA) {
@@ -311,7 +313,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             throw "Url B is required";
         }
         console.log("Comparing Urls: " + urlA + " / " + urlB);
-        return diffTwoUrls(urlA, urlB, returnImages, width, height)
+        return diffTwoUrls(urlA, urlB, returnImages, width, height);
     };
 
     var executeABCompare = function (host, port, compareId) {
@@ -326,7 +328,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         scylla = scyllaService(host, port);
         console.log("Charybdis setup against server: http://" + host + ":" + port);
 
-        if (!compareId || typeof compareId !== "string" && compareId.length == 0) {
+        if (!compareId || typeof compareId !== "string" && compareId.length === 0) {
             var d = Q.defer();
             d.reject(new Error("AbCompare ID is required"));
             return d.promise;
@@ -344,10 +346,10 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                                 return {
                                     abCompare      : abCompare,
                                     abCompareResult: abCompareResults
-                                }
+                                };
                             });
-                    })
-            })
+                    });
+            });
     };
 
     var validateInputs = function validateInputs(host, port, id){
@@ -362,7 +364,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         scylla = scyllaService(host, port);
         console.log("Charybdis setup against server: http://" + host + ":" + port);
 
-        if (!id || typeof id !== "string" && id.length == 0) {
+        if (!id || typeof id !== "string" && id.length === 0) {
             console.error("ID is required");
             throw "ID is required";
         }
@@ -420,21 +422,22 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                                     .then(function (result) {
                                         console.log("Setting Result Summary");
                                         //console.log(util.inspect(result));
-                                        if (result.resultDiff.distortion == 0)
+                                        if (result.resultDiff.distortion === 0){
                                             batchResult.pass++;
-                                        else if (result.resultDiff.distortion == -1)
+                                        }else if (result.resultDiff.distortion === -1){
                                             batchResult.exception++;
-                                        else
+                                        }else{
                                             batchResult.fail++;
+                                        }
                                         var reportSummary = {
                                             resultDiffId: result.resultDiff._id,
                                             distortion  : result.resultDiff.distortion,
-                                            error       : (result.resultDiff.distortion == -1) ? result.resultDiff.error : undefined,
+                                            error       : (result.resultDiff.distortion === -1) ? result.resultDiff.error : undefined,
                                             name        : result.report.name
                                         };
                                         batchResult.reportResultSummaries[result.result._id] = reportSummary;
                                         return reportSummary;
-                                    })
+                                    });
                         });
                 return Q.when(captureQueuePromise)
                     .then(function () {
@@ -448,7 +451,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                                 return {
                                     batch      : batch,
                                     batchResult: batchResult
-                                }
+                                };
                             });
                     });
             }, function (error) {
@@ -466,7 +469,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         compareTwoUrls        : compareTwoUrls,
         executeABCompare      : executeABCompare
     };
-}
+};
 
 
 

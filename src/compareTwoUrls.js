@@ -17,6 +17,7 @@ cli.parse({
 var charybdis = require('./index');
 
 cli.main(function (args, options) {
+    'use strict';
     logger.info(args, options);
     charybdis(options.host, options.port).compareTwoUrls(options.urlA, options.urlB)
         .then(function(result){

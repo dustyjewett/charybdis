@@ -1,12 +1,12 @@
 
-var sinon = require('sinon');
 var expect = require('chai').expect;
 
-var Q = require('q');
 
 var imagemagick = require('../../../src/imagemagick/imagemagick.js');
 
 describe('imagemagick', function(){
+    'use strict';
+
     describe('api', function(){
 
 
@@ -21,7 +21,7 @@ describe('imagemagick', function(){
         });
 
 
-    })
+    });
 
     describe('compare', function(){
 
@@ -31,7 +31,8 @@ describe('imagemagick', function(){
                     "test/unit/imagemagick/resources/fileB.png",
                     "test/unit/imagemagick/resources/output.png"
                 ).then(function(info){
-                    expect(info.comparison.properties['Channel distortion'].all, "all").to.equal('4541.48 (0.0692985)')
+                    expect(info.comparison.properties['Channel distortion'].all, "all").to.equal('4541.48 (0.0692985)');
+                    done();
                 });
 
         });
@@ -41,7 +42,8 @@ describe('imagemagick', function(){
                     "test/unit/imagemagick/resources/fileE.png",
                     "test/unit/imagemagick/resources/output2.png"
                 ).then(function(info){
-                    expect(info.comparison.properties['Channel distortion'].all, "all").to.equal('7211.05 (0.110034)')
+                    expect(info.comparison.properties['Channel distortion'].all, "all").to.equal('7211.05 (0.110034)');
+                    done();
                 });
 
         });
@@ -51,7 +53,8 @@ describe('imagemagick', function(){
                     "test/unit/imagemagick/resources/fileA.png",
                     "test/unit/imagemagick/resources/output3.png"
                 ).then(function(info){
-                    expect(info.comparison.properties['Channel distortion'].all, "all").to.equal('0 (0)')
+                    expect(info.comparison.properties['Channel distortion'].all, "all").to.equal('0 (0)');
+                    done();
                 });
 
         });
@@ -65,5 +68,5 @@ describe('imagemagick', function(){
             });
         */
 
-    })
+    });
 });

@@ -5,9 +5,8 @@
  */
 //IIFE
 module.exports = (function(){
+    'use strict';
     var Q = require('q');
-    var fsQ = require("q-io/fs");
-    var temp = require("temp");
     var exec = require('child_process').exec;
 
 
@@ -18,13 +17,13 @@ module.exports = (function(){
         };
         while(lines.length){
             var line = lines.shift();
-            if(line == "") continue;
-            if(line.indexOf("compare") == 0){
-                errorInfo.messages.push(line.split(":")[1].split("`")[0].trim())
+            if(line === "") { continue; }
+            if(line.indexOf("compare") === 0){
+                errorInfo.messages.push(line.split(":")[1].split("`")[0].trim());
             } else if(!errorInfo.hasOwnProperty("fileA")) {
-                errorInfo.fileA = parseIdentifySingleLineOutput(line)
+                errorInfo.fileA = parseIdentifySingleLineOutput(line);
             } else if(!errorInfo.hasOwnProperty("fileB")) {
-                errorInfo.fileB = parseIdentifySingleLineOutput(line)
+                errorInfo.fileB = parseIdentifySingleLineOutput(line);
             } else {
                 errorInfo.messages.push(line);
             }
@@ -41,7 +40,7 @@ module.exports = (function(){
             output: parseIdentifySingleLineOutput(lines.pop()),
             comparison:parseIdentifyOutputWithNewlines(lines)
         };
-        return info
+        return info;
     };
 
     var parseIdentifySingleLineOutput = function parseIdentifySingleLineOutput(line){
@@ -58,7 +57,7 @@ module.exports = (function(){
                 'User time':parts[7],
                 'Elapsed time:':parts[8]
             }
-        }
+        };
     };
 
     var parseIdentifyOutputWithNewlines = function parseIdentifyOutputWithNewlines(linesArray) {
@@ -71,7 +70,7 @@ module.exports = (function(){
         var objectStack = [];
         for(var i = 0; i < linesArray.length; i++) {
             var line = linesArray[i];
-            if(line == "") continue;
+            if(line === "") { continue; }
             var colonPos = line.lastIndexOf(":");
             var propName = line.substring(0, colonPos);
             var value = line.substring(colonPos + 1).trim();
@@ -113,7 +112,7 @@ module.exports = (function(){
         });
         return execDeferred.promise
             .fail(function(failedOutput){
-                if(failedOutput.messages[0] == 'image widths or heights differ'){
+                if(failedOutput.messages[0] === 'image widths or heights differ'){
                     if(!pixelsToCompare) {
                         console.log("Image Size mismatch, re-running on subset");
                         var sizeA = failedOutput.fileA.properties.ResolutionInPixels.split("x");
@@ -143,7 +142,7 @@ module.exports = (function(){
                    "-verbose",
                    '"' + fileA + '"'
                   ].join(" ");
-        exec(cmd, function(error, stdout, stderr){
+        exec(cmd, function(error, stdout/*, stderr*/){
             if(error){
                 execDeferred.reject(error);
             } else {
@@ -178,7 +177,7 @@ module.exports = (function(){
             }
         });
         return execDeferred.promise;
-    }
+    };
 
 
     return {

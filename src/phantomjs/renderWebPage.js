@@ -1,3 +1,4 @@
+/*global phantom:false*/
 /*
  * Note: This script is intended to be run inside PhantomJS, not Node.
  *
@@ -8,7 +9,6 @@
 var page = require('webpage').create(),
     system = require('system'),
     address, output, size;
-var fs = require("fs");
 
 if (system.args.length < 3 || system.args.length > 5) {
     console.log('Usage: render-web-page.js URL filename width height');
@@ -20,11 +20,12 @@ if (system.args.length < 3 || system.args.length > 5) {
     width = system.args[3] || 600;
     height = system.args[4] || 600;
     page.viewportSize = { width: width, height: height };
-    if(address.indexOf("?") == -1) {
+    if(address.indexOf("?") === -1) {
         address += "?phantomjs";
     }
     system.stdout.write("Opening Page: " + address + "\n");
     page.open(address, function (status) {
+        'use strict';
         //system.stdout.write(status);
         //fs.write("/dev/stdout", status, "w");
         if (status !== 'success') {
@@ -50,8 +51,9 @@ if (system.args.length < 3 || system.args.length > 5) {
         })
     };
     page.onResourceReceived = function(resource) {
+        'use strict';
         //system.stdout.write("Received:  " + resource.url + " : " + resource.status + "\n");
-        if (resource.url == address && parseInt(resource.status) >= 400 ) {
+        if (resource.url === address && parseInt(resource.status, 10) >= 400 ) {
             //system.stdout.write(address + ":" + resource.status);
             system.stderr.write("Unable to capture page, received error: " + resource.status);
             phantom.exit(1);
