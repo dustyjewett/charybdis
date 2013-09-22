@@ -73,24 +73,24 @@ module.exports = function (host, port) {
     };
 
     var newCompareResult = function newReportResult(compareId, result) {
-        var compareResultPost = postRequest("/abcompares/" + compareId + "/results/", result);
+        var compareResultPost = postRequest("/abcompares/" + compareId + "/results", result);
 
         return getJsonObject(compareResultPost);
     };
 
     var newReportResult = function newReportResult(reportId, result) {
-        var reportResultPost = postRequest("/reports/" + reportId + "/results/", result);
+        var reportResultPost = postRequest("/reports/" + reportId + "/results", result);
 
         return getJsonObject(reportResultPost);
     };
     var newBatchResult = function newBatchResult(batchId, batchResult) {
 
-        var batchResultPost = postRequest("/batches/" + batchId + "/results/", batchResult);
+        var batchResultPost = postRequest("/batches/" + batchId + "/results", batchResult);
         return getJsonObject(batchResultPost);
 
     };
     var newResultDiff = function newResultDiff(resultDiff) {
-        var resultDiffPost = postRequest("/result-diffs/", resultDiff);
+        var resultDiffPost = postRequest("/result-diffs", resultDiff);
         return getJsonObject(resultDiffPost);
     };
 
