@@ -17,6 +17,7 @@ module.exports = function webPageToImage(urlToPage, outputFile, width, height) {
     width = width || 600;
     height = height || 600;
     var childArgs = [
+        "--ignore-ssl-errors=true",
         path.join(__dirname, 'renderWebPage.js'),
         urlToPage,
         outputFile,
