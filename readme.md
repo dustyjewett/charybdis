@@ -18,7 +18,7 @@ She now creates a whirlpool three times a day, sucking in enormous amounts of se
 passing by.  She then spits out the entire contents of what she swallowed, creating even more mayhem.
 
 The icon is appropriated from:
-http://danbooru.donmai.us/posts/1136450
+http://s.cghub.com/files/Image/612001-613000/612559/903_max.jpg
 
 Without permission... :-(
 
