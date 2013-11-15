@@ -8,7 +8,7 @@
 
 var page = require('webpage').create(),
     system = require('system'),
-    address, output, size;
+    address, output;
 
 if (system.args.length < 3 || system.args.length > 5) {
     console.log('Usage: render-web-page.js URL filename width height');
@@ -17,8 +17,8 @@ if (system.args.length < 3 || system.args.length > 5) {
 } else {
     address = system.args[1];
     output = system.args[2];
-    width = system.args[3] || 600;
-    height = system.args[4] || 600;
+    var width = system.args[3] || 600;
+    var height = system.args[4] || 600;
     page.viewportSize = { width: width, height: height };
     if(address.indexOf("?") === -1) {
         address += "?phantomjs";
@@ -42,13 +42,15 @@ if (system.args.length < 3 || system.args.length > 5) {
         }
     });
     page.onAlert = function(str) {
+        'use strict';
         system.stdout.writeLine(str);
     };
     page.onError = function (msg, trace) {
+        'use strict';
         system.stdout.writeLine("PAGE ERROR:" + msg);
         trace.forEach(function(item) {
             system.stdout.writeLine('  ', item.file, ':', item.line);
-        })
+        });
     };
     page.onResourceReceived = function(resource) {
         'use strict';

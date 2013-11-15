@@ -160,17 +160,23 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
 
     var processReport = function (reportId) {
         var currentReport;
+        var currentMaster;
         var currentResult;
         return scylla.getReport(reportId)
             .then(function (report) {
                 currentReport = report;
-                return renderAndSaveNewReportResult(currentReport);
+                return scylla.getMaster(reportId)
+                    .then(function(theMaster){
+                        console.log("Retrieved Master Image");
+                        currentMaster = theMaster;
+                        return currentReport;
+                    })
+                    .then(renderAndSaveNewReportResult);
             })
             .then(function (newResult) {
-                //console.log(util.inspect(newResult));
                 currentResult = newResult;
                 if (currentReport.masterResult) {
-                    return diffTwoBase64Images(currentReport.masterResult.result, currentResult.result)
+                    return diffTwoBase64Images(currentMaster, currentResult.result)
                         .then(function (diff) {
                             return scylla.newResultDiff({
                                 report           : currentReport,

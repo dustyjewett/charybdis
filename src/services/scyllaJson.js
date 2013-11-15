@@ -57,9 +57,52 @@ module.exports = function (host, port) {
             });
 
     };
+
+    /**
+     * Returns a promise for a string containing the image file.
+     *
+     * @param requestObject
+     * @returns {*}
+     */
+    var getImageObject = function (requestObject) {
+        console.log("Sending Request: ", requestObject.path);
+        return http.request(requestObject)
+            .then(function (response) {
+                if (response && response.status === 200) {
+                    //console.log("Response Received");
+                    return response.body.read()
+                        .then(function (body) {
+                            //console.log("Got JSON: ", body.toString());
+                            return body.toString("base64");
+                        });
+                } else {
+                    console.error("HTTP " + requestObject.method + " Error (" + requestObject.path + "): ", response.status);
+                    if(response.body) {
+                        return response.body.read()
+                            .then(function (body) {
+                                console.error("Error Body: ", body.toString());
+                                throw new Error("[scylla-json] Error: " + response.status);
+                            });
+                    } else {
+                        throw new Error(response);
+                    }
+                }
+            }, function(err){
+                console.error("[scylla-json]",err, requestObject.path);
+                throw new Error(err);
+            });
+
+    };
+
+
     var getReport = function (reportId) {
-        var reportRequest = getRequest("/reports/" + reportId + "?includeFullImage=true");
+        var reportRequest = getRequest("/reports/" + reportId );
         return getJsonObject(reportRequest);
+    };
+
+    var getMaster = function (reportId) {
+        var reportRequest = getRequest("/reports/" + reportId + "/master");
+        return getImageObject(reportRequest);
     };
 
     var getBatch = function (batchId) {
@@ -96,6 +139,7 @@ module.exports = function (host, port) {
 
     return {
         getReport       : getReport,
+        getMaster       : getMaster,
         getBatch        : getBatch,
         newReportResult : newReportResult,
         newBatchResult  : newBatchResult,
