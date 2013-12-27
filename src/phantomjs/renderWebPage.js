@@ -10,8 +10,8 @@ var page = require('webpage').create(),
     system = require('system'),
     address, output;
 
-if (system.args.length < 3 || system.args.length > 5) {
-    console.log('Usage: render-web-page.js URL filename width height');
+if (system.args.length < 3 || system.args.length > 6) {
+    console.log('Usage: render-web-page.js URL filename width height timeout');
     console.log('  screen sizes examples: iphone 4: "640 960", nexus 4: "1280 768"');
     phantom.exit(1);
 } else {
@@ -19,11 +19,19 @@ if (system.args.length < 3 || system.args.length > 5) {
     output = system.args[2];
     var width = system.args[3] || 600;
     var height = system.args[4] || 600;
+    var timeout = system.args[5] || 200;
     page.viewportSize = { width: width, height: height };
     if(address.indexOf("?") === -1) {
         address += "?phantomjs";
     }
     system.stdout.write("Opening Page: " + address + "\n");
+    var rendered = false
+    var renderAndExit = function(){
+        if(rendered) return;
+        rendered = true;
+        page.render(output);
+        phantom.exit();
+    };
     page.open(address, function (status) {
         'use strict';
         //system.stdout.write(status);
@@ -35,15 +43,16 @@ if (system.args.length < 3 || system.args.length > 5) {
 
             phantom.exit(1);
         } else {
-            window.setTimeout(function () {
-                page.render(output);
-                phantom.exit();
-            }, 200);
+            window.setTimeout(renderAndExit, timeout);
         }
     });
     page.onAlert = function(str) {
         'use strict';
-        system.stdout.writeLine(str);
+        if(str == "take-snapshot"){
+            renderAndExit();
+        } else {
+            system.stdout.writeLine(str);
+        }
     };
     page.onError = function (msg, trace) {
         'use strict';

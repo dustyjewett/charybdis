@@ -11,18 +11,20 @@ var path = require('path');
  * @param height viewport height
  * @return {*}
  */
-module.exports = function webPageToImage(urlToPage, outputFile, width, height) {
+module.exports = function webPageToImage(urlToPage, outputFile, width, height, timeout) {
     'use strict';
     var deferred = Q.defer();
     width = width || 600;
     height = height || 600;
+    timeout = timeout || 200;
     var childArgs = [
         "--ignore-ssl-errors=true",
         path.join(__dirname, 'renderWebPage.js'),
         urlToPage,
         outputFile,
         width,
-        height
+        height,
+        timeout
     ];
     //With all of these console statements, you'd think I have to debug this a lot...
 
