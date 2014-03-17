@@ -21,7 +21,9 @@ module.exports = function () {
         captureReportSnapshot: charybdis.captureReportSnapshot,
         executeOnBatch       : charybdis.executeOnBatch,
         compareTwoUrls       : charybdis.compareTwoUrls,
-        executeABCompare     : charybdis.executeABCompare
+        executeABCompare     : charybdis.executeABCompare,
+
+        webPageToSnapshot    : charybdis.webPageToSnapshot
     };
 };
 
