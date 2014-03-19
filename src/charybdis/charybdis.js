@@ -318,18 +318,24 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         return webPageToImage(url, file, width, height)
             .then(function(output){
                 console.log("Image Rendered for URL: " + url);
-                return fsQ.read(file, "b")
-                    .then(function(contents){
-                        return {
-                            console:output.console,
-                            message:output.message,
-                            state:"Captured",
-                            image:{
-                                contents:contents
-                            }
-                        };
+                return imagemagick.identify(file)
+                    .then(function(fileInfo){
+                        console.log(util.inspect(fileInfo));
+                        return fsQ.read(file, "b")
+                            .then(function(contents){
+                                return {
+                                    console:output.console,
+                                    message:output.message,
+                                    state:"Complete",
+                                    image:{
+                                        contents:contents,
+                                        info:fileInfo
+                                    }
+                                };
 
+                            });
                     });
+
             })
             .fin(cleanupFiles(file));
     };
