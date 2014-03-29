@@ -102,9 +102,9 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         var diffFile = temp.path(tmpOpts.diffdiff);
 
         return Q.all([
-                pngIO.writePng(masterFile, imageA),
-                pngIO.writePng(newFile, imageB)
-            ])
+            pngIO.writePng(masterFile, imageA),
+            pngIO.writePng(newFile, imageB)
+        ])
             .then(function () {
                 return imagemagick.compare(masterFile, newFile, diffFile);
             })
@@ -122,13 +122,12 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             })
             .fin(function (passthrough) {
                 return Q.all([
-                        fsQ.remove(masterFile),
-                        fsQ.remove(newFile),
-                        fsQ.remove(diffFile)
-                    ])
-                    .then(function () {
-                        return passthrough;
-                    });
+                    fsQ.remove(masterFile),
+                    fsQ.remove(newFile),
+                    fsQ.remove(diffFile)
+                ]).then(function () {
+                    return passthrough;
+                });
             });
     };
 
@@ -244,9 +243,9 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             })
             .then(function(fileString){
                 return fsQ.remove(fileThumb) // Cleanup
-                .then(function(){
-                   return fileString;
-                });
+                    .then(function(){
+                        return fileString;
+                    });
             });
     };
 
@@ -288,12 +287,11 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
      */
     var diffTwoUrls = function (urlA, urlB, width, height) {
         return Q.all([
-                webPageToSnapshot(urlA, width, height),
-                webPageToSnapshot(urlB, width, height)
-            ])
-            .spread(function (snapA, snapB) {
+            webPageToSnapshot(urlA, width, height),
+            webPageToSnapshot(urlB, width, height)
+        ]).spread(function (snapA, snapB) {
                 console.log("Snapshots Created");
-                return diffTwoSnapshots(snapA, snapB)
+                return diffTwoSnapshots(snapA.image.contents, snapB.image.contents)
                     .then(function(diff){
                         return {
                             diff:diff,
@@ -320,7 +318,7 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                 console.log("Image Rendered for URL: " + url);
                 return imagemagick.identify(file)
                     .then(function(fileInfo){
-                        console.log(util.inspect(fileInfo));
+                        //console.log(util.inspect(fileInfo));
                         return fsQ.read(file, "b")
                             .then(function(contents){
                                 return {
@@ -341,40 +339,47 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
     };
 
     /**
-     * Given two screenshots, diff the two and return the result.
-     * @param snapshotA
-     * @param snapshotB
+     * Given two images, diff the two and return the result.
+     * @param imageA - Binary file contents for imageA
+     * @param imageB - Binary file contents for imageB
      * @returns {*}
      */
-    var diffTwoSnapshots = function(snapshotA, snapshotB){
-        console.log("Comparing Snapshots");
+    var diffTwoSnapshots = function(imageA, imageB){
+        console.log("Comparing Snapshots " + typeof imageA);
         var fileA = temp.path(tmpOpts.compareA);
         var fileB = temp.path(tmpOpts.compareB);
         var diffFile = temp.path(tmpOpts.compareC);
 
         return Q.all([
-                fsQ.write(fileA, snapshotA.image.contents),
-                fsQ.write(fileB, snapshotB.image.contents)
-            ]).then(function(){
-                return imagemagick.compare(fileA, fileB, diffFile)
+            fsQ.write(fileA, imageA),
+            fsQ.write(fileB, imageB)
+        ]).then(function(){
+            console.log("Files written: " + fileA + " vs " + fileB);
+            return imagemagick.compare(fileA, fileB, diffFile)
                 .then(function (info) {
                     console.log("Diff Generated");
                     //console.log(info);
                     //console.log("Pixel Diff:" + info.comparison.properties["Channel distortion"].all.split(" ")[0]);
                     //console.log("Total Diff:" + info.distortion);
                     var result = {};
+                    result.info = info;
                     result.distortion = info.distortion;
                     result.warning = info.warning;
                     result.timestamp = new Date().toISOString();
-                    return fsQ.read(diffFile, "b")
-                        .then(function (diff) {
-                            result.image = {contents:diff};
-                            return result;
+                    return imagemagick.identify(diffFile)
+                        .then(function(fileInfo){
+                            return fsQ.read(diffFile, "b")
+                                .then(function (diff) {
+                                    result.image = {
+                                        contents:diff,
+                                        info:fileInfo
+                                    };
+                                    return result;
+                                });
                         });
                 });
 
-            })
-            .fin(cleanupFiles(diffFile));
+        }).fin(cleanupFiles(diffFile));
 
     };
 
@@ -384,8 +389,8 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         }
         return function(){
             return Q.allSettled(
-                    fileNames.map(function(fileName){ fsQ.remove(fileName);})
-                );
+                fileNames.map(function(fileName){ fsQ.remove(fileName);})
+            );
         };
     };
 
@@ -511,25 +516,25 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                         .aggregateThisPromise(function(value){
                             console.log("Processing Report: " + value);
                             return processReport(value)
-                                    .then(function (result) {
-                                        console.log("Setting Result Summary");
-                                        //console.log(util.inspect(result));
-                                        if (result.resultDiff.distortion === 0){
-                                            batchResult.pass++;
-                                        }else if (result.resultDiff.distortion === -1){
-                                            batchResult.exception++;
-                                        }else{
-                                            batchResult.fail++;
-                                        }
-                                        var reportSummary = {
-                                            resultDiffId: result.resultDiff._id,
-                                            distortion  : result.resultDiff.distortion,
-                                            error       : (result.resultDiff.distortion === -1) ? result.resultDiff.error : undefined,
-                                            name        : result.report.name
-                                        };
-                                        batchResult.reportResultSummaries[result.result._id] = reportSummary;
-                                        return reportSummary;
-                                    });
+                                .then(function (result) {
+                                    console.log("Setting Result Summary");
+                                    //console.log(util.inspect(result));
+                                    if (result.resultDiff.distortion === 0){
+                                        batchResult.pass++;
+                                    }else if (result.resultDiff.distortion === -1){
+                                        batchResult.exception++;
+                                    }else{
+                                        batchResult.fail++;
+                                    }
+                                    var reportSummary = {
+                                        resultDiffId: result.resultDiff._id,
+                                        distortion  : result.resultDiff.distortion,
+                                        error       : (result.resultDiff.distortion === -1) ? result.resultDiff.error : undefined,
+                                        name        : result.report.name
+                                    };
+                                    batchResult.reportResultSummaries[result.result._id] = reportSummary;
+                                    return reportSummary;
+                                });
                         });
                 return Q.when(captureQueuePromise)
                     .then(function () {
