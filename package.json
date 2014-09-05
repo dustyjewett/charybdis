@@ -31,6 +31,6 @@
   "description": "Charybdis ======",
   "_id": "charybdis@2.0.2",
   "_shasum": "a81383ee100a0211f2247c441c2f2a75f2d31baa",
-  "_resolved": "git+https://github.com/simplymeasured/charybdis.git#c39ef76e12890802ad92c28451f47e3472c1f56a",
+  "_resolved": "git+https://github.com/simplymeasured/charybdis.git#40ded2170077d3c3eb603d0f004a552a6e0b11ef",
   "_from": "charybdis@git+https://github.com/simplymeasured/charybdis.git#feature/v2"
 }

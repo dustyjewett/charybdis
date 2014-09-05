@@ -1,4 +1,5 @@
 .idea
 *.iml
+*.log
 node_modules
 test/unit/imagemagick/resources/output*.png

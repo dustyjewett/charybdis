@@ -311,9 +311,9 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
      * @param height
      * @returns {Promise}
      */
-    var webPageToSnapshot = function webPageToSnapshot(url, width, height){
+    var webPageToSnapshot = function webPageToSnapshot(url, width, height, timeout, cookie){
         var file = temp.path(tmpOpts.compareA);
-        return webPageToImage(url, file, width, height)
+        return webPageToImage(url, file, width, height, timeout, cookie)
             .then(function(output){
                 console.log("Image Rendered for URL: " + url);
                 return imagemagick.identify(file)
