@@ -102,9 +102,9 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         var diffFile = temp.path(tmpOpts.diffdiff);
 
         return Q.all([
-                pngIO.writePng(masterFile, imageA),
-                pngIO.writePng(newFile, imageB)
-            ])
+            pngIO.writePng(masterFile, imageA),
+            pngIO.writePng(newFile, imageB)
+        ])
             .then(function () {
                 return imagemagick.compare(masterFile, newFile, diffFile);
             })
@@ -122,13 +122,12 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             })
             .fin(function (passthrough) {
                 return Q.all([
-                        fsQ.remove(masterFile),
-                        fsQ.remove(newFile),
-                        fsQ.remove(diffFile)
-                    ])
-                    .then(function () {
-                        return passthrough;
-                    });
+                    fsQ.remove(masterFile),
+                    fsQ.remove(newFile),
+                    fsQ.remove(diffFile)
+                ]).then(function () {
+                    return passthrough;
+                });
             });
     };
 
@@ -244,69 +243,155 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             })
             .then(function(fileString){
                 return fsQ.remove(fileThumb) // Cleanup
-                .then(function(){
-                   return fileString;
-                });
+                    .then(function(){
+                        return fileString;
+                    });
             });
     };
 
-    var diffTwoUrls = function (urlA, urlB, returnImages, width, height) {
+    /**
+     * Returns a promise for a thumbnail
+     * @param filename - File to be opened
+     * @param size - square size, defaults to 120
+     * @returns {Promise} - Binary file contents of the thumbnail
+     */
+    var getThumbnail = function(filename, size){
+        size = size || 120;
+        var fileThumb = temp.path(tmpOpts.thumbString + size);
+        return imagemagick.makeThumbnail(filename, fileThumb, size)
+            .then(function () {
+                return fsQ.read(filename, "b");
+            })
+            .then(function(fileContents){
+                return fsQ.remove(fileThumb) // Cleanup
+                    .then(function(){
+                        return fileContents;
+                    });
+            });
+    };
+
+
+    /**
+     * Diffs two URLS using the specified width and height.
+     *
+     * @param urlA
+     * @param urlB
+     * @param width
+     * @param height
+     * @returns {Promise} result of the diff:
+     *                      {
+     *                          snapA: Snapshot representing Url A
+     *                          snapB: Snapshot representing Url B
+     *                          diff: Binary file contents of the diff between images
+     *                      }
+     */
+    var diffTwoUrls = function (urlA, urlB, width, height) {
+        return Q.all([
+            webPageToSnapshot(urlA, width, height),
+            webPageToSnapshot(urlB, width, height)
+        ]).spread(function (snapA, snapB) {
+                console.log("Snapshots Created");
+                return diffTwoSnapshots(snapA.image.contents, snapB.image.contents)
+                    .then(function(diff){
+                        return {
+                            diff:diff,
+                            snapA:snapA,
+                            snapB:snapB
+                        };
+                    });
+            });
+    };
+
+
+    /**
+     * Screen capture a URL and return a bunch of info about it.
+     *
+     * @param url
+     * @param width
+     * @param height
+     * @returns {Promise}
+     */
+    var webPageToSnapshot = function webPageToSnapshot(url, width, height){
+        var file = temp.path(tmpOpts.compareA);
+        return webPageToImage(url, file, width, height)
+            .then(function(output){
+                console.log("Image Rendered for URL: " + url);
+                return imagemagick.identify(file)
+                    .then(function(fileInfo){
+                        //console.log(util.inspect(fileInfo));
+                        return fsQ.read(file, "b")
+                            .then(function(contents){
+                                return {
+                                    console:output.console,
+                                    message:output.message,
+                                    state:"Complete",
+                                    image:{
+                                        contents:contents,
+                                        info:fileInfo
+                                    }
+                                };
+
+                            });
+                    });
+
+            })
+            .fin(cleanupFiles(file));
+    };
+
+    /**
+     * Given two images, diff the two and return the result.
+     * @param imageA - Binary file contents for imageA
+     * @param imageB - Binary file contents for imageB
+     * @returns {*}
+     */
+    var diffTwoSnapshots = function(imageA, imageB){
+        console.log("Comparing Snapshots " + typeof imageA);
         var fileA = temp.path(tmpOpts.compareA);
         var fileB = temp.path(tmpOpts.compareB);
         var diffFile = temp.path(tmpOpts.compareC);
+
         return Q.all([
-                webPageToImage(urlA, fileA, width, height),
-                webPageToImage(urlB, fileB, width, height)
-            ])
-            .then(function () {
-                return imagemagick.compare(fileA, fileB, diffFile)
-                    .then(function (info) {
-                        var result = {};
-                        //console.log(info);
-                        //console.log("Pixel Diff:" + info.comparison.properties["Channel distortion"].all.split(" ")[0]);
-                        //console.log("Total Diff:" + info.distortion);
-                        return getThumbnailString(fileA)
-                            .then(function (thumbString) {
-                                result.thumbA = thumbString;
-                                return getThumbnailString(fileB)
-                                    .then(function (thumbString) {
-                                        result.thumbB = thumbString;
-                                    });
-                            })
-                            .then(function () {
-                                return pngIO.readPng(diffFile);
-                            })
-                            .then(function (imageString) {
-                                result.image = imageString;
-                                result.distortion = info.distortion;
-                                result.warning = info.warning;
-                                result.timestamp = new Date().toISOString();
-                                if (returnImages) {
-                                    return Q.all([
-                                            pngIO.readPng(fileA),
-                                            pngIO.readPng(fileB)
-                                        ]).spread(function (imgA, imgB) {
-                                            result.resultA = imgA;
-                                            result.resultB = imgB;
-                                            return result;
-                                        });
-                                }
-
-                                return result;
-                            });
-                    });
-            })
-            .then(function(passthrough){
-                return Q.allSettled([
-                    fsQ.remove(fileA),
-                    fsQ.remove(fileB),
-                    fsQ.remove(diffFile)
-                ])
-                .then(function () {
-                    return passthrough;
+            fsQ.write(fileA, imageA),
+            fsQ.write(fileB, imageB)
+        ]).then(function(){
+            console.log("Files written: " + fileA + " vs " + fileB);
+            return imagemagick.compare(fileA, fileB, diffFile)
+                .then(function (info) {
+                    console.log("Diff Generated");
+                    //console.log(info);
+                    //console.log("Pixel Diff:" + info.comparison.properties["Channel distortion"].all.split(" ")[0]);
+                    //console.log("Total Diff:" + info.distortion);
+                    var result = {};
+                    result.info = info;
+                    result.distortion = info.distortion;
+                    result.warning = info.warning;
+                    result.timestamp = new Date().toISOString();
+                    return imagemagick.identify(diffFile)
+                        .then(function(fileInfo){
+                            return fsQ.read(diffFile, "b")
+                                .then(function (diff) {
+                                    result.image = {
+                                        contents:diff,
+                                        info:fileInfo
+                                    };
+                                    return result;
+                                });
+                        });
                 });
-            });
 
+        }).fin(cleanupFiles(diffFile));
+
+    };
+
+    var cleanupFiles = function(fileNames){
+        if(!Array.isArray(fileNames)){
+            fileNames = [fileNames];
+        }
+        return function(){
+            return Q.allSettled(
+                fileNames.map(function(fileName){ fsQ.remove(fileName);})
+            );
+        };
     };
 
     var compareTwoUrls = function (urlA, urlB, returnImages, width, height) {
@@ -319,7 +404,13 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
             throw "Url B is required";
         }
         console.log("Comparing Urls: " + urlA + " / " + urlB);
-        return diffTwoUrls(urlA, urlB, returnImages, width, height);
+        return diffTwoUrls(urlA, urlB, width, height)
+            .then(function(result){
+                console.log("The Result: ", require('util').inspect(result));
+            })
+            .fail(function(error){
+                console.log("Got Error: ", require('util').inspect(error));
+            });
     };
 
     var executeABCompare = function (host, port, compareId) {
@@ -425,25 +516,25 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
                         .aggregateThisPromise(function(value){
                             console.log("Processing Report: " + value);
                             return processReport(value)
-                                    .then(function (result) {
-                                        console.log("Setting Result Summary");
-                                        //console.log(util.inspect(result));
-                                        if (result.resultDiff.distortion === 0){
-                                            batchResult.pass++;
-                                        }else if (result.resultDiff.distortion === -1){
-                                            batchResult.exception++;
-                                        }else{
-                                            batchResult.fail++;
-                                        }
-                                        var reportSummary = {
-                                            resultDiffId: result.resultDiff._id,
-                                            distortion  : result.resultDiff.distortion,
-                                            error       : (result.resultDiff.distortion === -1) ? result.resultDiff.error : undefined,
-                                            name        : result.report.name
-                                        };
-                                        batchResult.reportResultSummaries[result.result._id] = reportSummary;
-                                        return reportSummary;
-                                    });
+                                .then(function (result) {
+                                    console.log("Setting Result Summary");
+                                    //console.log(util.inspect(result));
+                                    if (result.resultDiff.distortion === 0){
+                                        batchResult.pass++;
+                                    }else if (result.resultDiff.distortion === -1){
+                                        batchResult.exception++;
+                                    }else{
+                                        batchResult.fail++;
+                                    }
+                                    var reportSummary = {
+                                        resultDiffId: result.resultDiff._id,
+                                        distortion  : result.resultDiff.distortion,
+                                        error       : (result.resultDiff.distortion === -1) ? result.resultDiff.error : undefined,
+                                        name        : result.report.name
+                                    };
+                                    batchResult.reportResultSummaries[result.result._id] = reportSummary;
+                                    return reportSummary;
+                                });
                         });
                 return Q.when(captureQueuePromise)
                     .then(function () {
@@ -473,6 +564,8 @@ module.exports = function (webPageToImage, imagemagick, pngIO, scyllaService) {
         captureReportSnapshot : captureReportSnapshot,
         executeOnBatch        : executeOnBatch,
         compareTwoUrls        : compareTwoUrls,
+        diffTwoSnapshots      : diffTwoSnapshots,
+        webPageToSnapshot     : webPageToSnapshot,
         executeABCompare      : executeABCompare
     };
 };

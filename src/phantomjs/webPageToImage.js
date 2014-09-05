@@ -37,7 +37,7 @@ module.exports = function webPageToImage(urlToPage, outputFile, width, height, t
         } else {
             //console.log("Rendered Url: " + urlToPage);
             //console.log("To File: " + outputFile);
-            deferred.resolve(stdout);
+            deferred.resolve({message:stderr, console:stdout});
         }
     });
 

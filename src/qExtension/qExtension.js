@@ -19,7 +19,7 @@ module.exports = (function(){
                 //console.log("Calling Fn with: ", value);
                 return Q.fcall(func, value)
                     .then(function(result){
-                        console.log("Result for: ", value, " is ", result);
+                        //console.log("Result for: ", value, " is ", result);
                         results.push(result);
                     });
             });

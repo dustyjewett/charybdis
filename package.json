@@ -1,6 +1,6 @@
 {
   "name": "charybdis",
-  "version": "0.6.1",
+  "version": "2.0.2",
   "private": true,
   "scripts": {
     "start": "node src/index.js"
@@ -25,5 +25,12 @@
     "grunt": "~0.4.1",
     "matchdep": "~0.1.2",
     "grunt-release": "~0.5.1"
-  }
+  },
+  "readme": "Charybdis\n======\n\nA tool for snatching snapshots of urls... specifically, reports.\n\nThe unseen monster lurking below, it eats urls and spits out diffs.\n\n\n\n\n\nName & Icon\n-----------\nCharybdis is a part of Greek Mythology, originally a beautiful daughter of Poseidon, but turned into a sea monster after\nshe threatened too much of Zeus's land.\n\nShe now creates a whirlpool three times a day, sucking in enormous amounts of seawater, and any ships that happen to be\npassing by.  She then spits out the entire contents of what she swallowed, creating even more mayhem.\n\nThe icon is appropriated from:\nhttp://s.cghub.com/files/Image/612001-613000/612559/903_max.jpg\n\nWithout permission... :-(\n\n\nLicense\n-------\nSee [LICENSE][]\n\n[LICENSE]: LICENSE.md\n",
+  "readmeFilename": "readme.md",
+  "description": "Charybdis ======",
+  "_id": "charybdis@2.0.2",
+  "_shasum": "a81383ee100a0211f2247c441c2f2a75f2d31baa",
+  "_resolved": "git+https://github.com/simplymeasured/charybdis.git#c39ef76e12890802ad92c28451f47e3472c1f56a",
+  "_from": "charybdis@git+https://github.com/simplymeasured/charybdis.git#feature/v2"
 }
