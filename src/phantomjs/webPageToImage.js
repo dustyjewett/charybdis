@@ -59,13 +59,9 @@ module.exports = function webPageToImage(urlToPage, outputFile, width, height, t
         timeout
     ];
     if (cookies) {
-        console.log('shit');
         cookies = JSON.stringify(convertCookieJSON(cookies));
-        // cookies = JSON.stringify(convertCookieString(cookies));
         childArgs.push(cookies);
     }
-    console.log('===cookie is===');
-    console.log(cookies);
     //With all of these console statements, you'd think I have to debug this a lot...
     //console.log(binPath + " " + childArgs.join(" "));
     execFile(binPath, childArgs, function(error, stdout, stderr) {

@@ -38,7 +38,6 @@ if (system.args.length < 3 || system.args.length > 7) {
     if (cookieString.length > 0) { 
         var bakedCookies = JSON.parse(cookieString);
         for (var i = 0; i < bakedCookies.length; i++) {
-            console.log('ADDEM A COOKIERP');
             phantom.addCookie(bakedCookies[i]);
         }
         
