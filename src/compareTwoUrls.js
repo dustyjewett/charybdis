@@ -21,7 +21,7 @@ cli.main(function (args, options) {
     logger.info(args, options);
     charybdis(options.host, options.port).compareTwoUrls(options.urlA, options.urlB)
         .then(function(result){
-            logger.info("Charybdis Finished", result);
+            logger.info("Charybdis Finished", require('util').inspect(result));
         });
 });
 
